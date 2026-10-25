@@ -1,230 +1,427 @@
-/* 视图（第一层）：首页（项目总览 / 演示入口）
- * 职责：一屏讲清「这是什么 → 做到什么程度 → 怎么往下点」，并提供三个模块入口。
- * 诚实边界：本页所有指标来自 assets/data.js 的模拟数据，非真实实验结果。
+/* 视图（第 1 层）：首页 Hero（v0.4 深色 premium 科技风）
+ * 左侧：三行渐隐标题 + 副标题 + 两个按钮 + 数据条
+ * 右侧：四块等轴测玻璃数据板（Canvas 自绘）+ 两张玻璃卡
+ * 底部：技术栈 logo 行
+ * 诚实边界：所有数字来自 assets/data.js 的模拟数据，非真实实验结果。
  */
 (function (A, D) {
   "use strict";
-  const K = A.kit;
 
-  // 第二层：三个模块（点进去是第一层 → 第二层的下钻）
-  const MODS = [
-    {
-      key: "monitor", ic: "◉", t: "运行监控", sub: "LIVE", n: "3 个页面",
-      d: "看平台此刻在干什么：工序推进、部件状态、异常处置与留痕。",
-      pages: ["驾驶舱", "数字孪生", "告警与日志"],
-    },
-    {
-      key: "data", ic: "▤", t: "实验数据", sub: "ARCHIVE", n: "1 个页面 · 11 条详情",
-      d: "看历史跑得怎么样：9 轮配方、LSV / Tafel 曲线，逐轮下钻到单轮证据。",
-      pages: ["实验档案", "轮次详情"],
-    },
-    {
-      key: "ops", ic: "✦", t: "智能编排", sub: "AGENT", n: "2 个页面",
-      d: "下一句任务，看 Agent 如何编排工序、给出候选并等待人工批准。",
-      pages: ["任务中心", "Agent 工作台"],
-    },
-  ];
+  const REDUCE = (function () {
+    try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+    catch (e) { return false; }
+  })();
 
-  // 3 分钟导览（每一步都是一次真实下钻）
-  const GUIDE = [
-    { t: "启动运行", d: "顶栏「▶ 启动」，进驾驶舱看工序与指标联动。", go: "monitor/dashboard" },
-    { t: "看数字孪生", d: "泵 / 烧杯 / 工作站随工序高亮，异常部件变红。", go: "monitor/twin" },
-    { t: "注入异常", d: "顶栏「⚠ 注入异常」，看分级告警与自动恢复。", go: "monitor/logs" },
-    { t: "下钻一轮", d: "实验数据 → 档案 → 点 R-008，看第三层证据。", go: "data/archive/R-008" },
-    { t: "批准候选", d: "Agent 台看候选配方与证据，批准后才下发。", go: "ops/agent" },
-  ];
+  // 调试/截图开关：index.html?noanim  → 直接显示静止终态
+  const NOANIM = (function () {
+    try { return /[?&]noanim/.test(String(window.location.search || "")); }
+    catch (e) { return false; }
+  })();
 
-  function stateOf() {
-    const S = A.state;
-    return S.fault ? { cls: "s-err", text: "异常处置中" }
-      : S.running ? { cls: "s-run", text: "运行中" }
-        : { cls: "s-idle", text: "待机" };
+  let artRaf = 0;
+  let viewRoot = null;
+
+  function stopArt() {
+    if (artRaf && window.cancelAnimationFrame) window.cancelAnimationFrame(artRaf);
+    artRaf = 0;
   }
 
-  function stat(id, label, val, unit, delta, dir) {
-    return '<div class="card stat"><div class="k">' + K.esc(label) + "</div>" +
-      '<div class="v">' + (id ? '<span id="' + id + '">' : "") + val + (id ? "</span>" : "") +
-      (unit ? "<small>" + K.esc(unit) + "</small>" : "") + "</div>" +
-      '<div class="d ' + (dir || "") + '">' + delta + "</div></div>";
+  // ============================================================
+  // 一、画布缩放：设计画布 1980 × 1080，按内容区尺寸等比缩放
+  // ============================================================
+  function fitUnit(root) {
+    const hv = root && root.querySelector ? root.querySelector(".hv") : null;
+    if (!hv) return;
+    const w = root.clientWidth || (window.innerWidth || 1440);
+    const h = root.clientHeight || (window.innerHeight ? window.innerHeight - 128 : 772);
+    if (!(w > 0 && h > 0)) return;
+    const u = Math.min(w / 1980, h / 1080);
+    if (hv.style && hv.style.setProperty) hv.style.setProperty("--u", u.toFixed(4) + "px");
   }
 
-  A.views.home = function (root) {
-    const S = A.state;
-    const rounds = D.ROUNDS;
-    const first = rounds[0].metrics;
-    const last = rounds[rounds.length - 1].metrics;
-    const etaDrop = ((1 - last.eta10 / first.eta10) * 100).toFixed(1);
-    const tafDrop = ((1 - last.tafel / first.tafel) * 100).toFixed(1);
-    const st = stateOf();
-    const step = A.sim.currentStep();
-    const prog = A.sim.roundProgress() * 100;
-    const activeAlarms = (S.alarms || []).filter(a => !a.recovered).length;
-    const recovered = (S.alarms || []).filter(a => a.recovered).length;
+  if (window.addEventListener) {
+    window.addEventListener("resize", function () {
+      if (viewRoot && document.body && document.body.contains(viewRoot)) fitUnit(viewRoot);
+    });
+  }
 
-    root.innerHTML =
+  // ============================================================
+  // 二、插画：四块等轴测玻璃数据板
+  // ============================================================
+  function startArt(mount) {
+    const cv = mount.querySelector("canvas");
+    const ctx = cv && cv.getContext ? cv.getContext("2d") : null;
+    if (!ctx) return;
 
-      // ==================== 一、Hero ====================
-      '<section class="home-hero">' +
-      '<div class="hero-grid">' +
+    const COS = Math.cos(Math.PI / 6), SIN = 0.5;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 1, H = 1, S = 1, cx = 0, cy = 0;
 
-      '<div class="hero-copy">' +
-      '<div class="kicker">浙江大学 ·「启真问创·重器领航」智能过程装备创新创业大赛</div>' +
-      "<h1>基于 AI Agent 的<br>析氢催化剂智能优化系统</h1>" +
-      '<p class="lede">在既有立式机柜式电解水制氢评价平台上做<b>增量改造</b>：由 Agent 把' +
-      "「下达任务 → 编排工序 → 电化学表征 → 贝叶斯寻优 → 异常处置」串成<b>无人值守闭环</b>，" +
-      "实验数据自动归档、每个动作可追溯。</p>" +
-      '<div class="hero-tags">' +
-      ["电解水制氢", "AI Agent 托管", "贝叶斯闭环寻优", "数字孪生监控", "异常自恢复"].map(function (x) {
-        return '<span class="ht">' + x + "</span>";
-      }).join("") +
-      "</div>" +
-      '<div class="hero-btns">' +
-      '<button class="hero-primary" id="heroBtn">' + (S.running ? "⏸ 暂停运行" : "▶ 启动模拟运行") + "</button>" +
-      '<button class="hero-ghost" data-go="monitor">◉ 进入运行监控</button>' +
-      '<button class="hero-ghost" data-go="ops/agent">✦ Agent 决策台</button>' +
-      "</div>" +
-      '<div class="hero-note">界面数据为<b>模拟生成</b>，用于流程与交互演示；非真实实验结果。</div>' +
-      "</div>" +
+    function measure() {
+      const r = mount.getBoundingClientRect ? mount.getBoundingClientRect() : { width: 800, height: 800 };
+      W = Math.max(300, Math.round(r.width || 800));
+      H = Math.max(300, Math.round(r.height || 800));
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      if (ctx.setTransform) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      S = Math.min(W, H) * 0.235;     // 菱形半高
+      cx = W * 0.5;
+      cy = H * 0.5;
+    }
+    measure();
 
-      // 实时状态卡
-      '<div class="hero-status">' +
-      '<div class="hs-hd"><i class="dot ' + st.cls + '" id="homeDot"></i>' +
-      '<b id="homeState">' + st.text + '</b><span class="hs-live">每 250 ms 刷新</span></div>' +
-      '<div class="kv"><span>当前工序</span><span id="homeStep">' + K.esc(step.name) + "</span></div>" +
-      '<div class="kv"><span>本轮进度</span><span id="homeProg">' + prog.toFixed(0) + "%</span></div>" +
-      '<div class="pbar" id="homeBar"><i style="width:' + prog.toFixed(1) + '%"></i></div>' +
-      '<div class="kv"><span>已完成轮次</span><span><b id="homeRound">' + S.roundCount + "</b> / 8 轮</span></div>" +
-      '<div class="kv"><span>最新 η10</span><span>' + A.fmt.num(last.eta10, 1) + " mV</span></div>" +
-      '<div class="kv"><span>当前异常</span><span><b id="homeAlarm">' + activeAlarms + "</b> 起未恢复</span></div>" +
-      "</div>" +
+    function pr(u, v, z, x0, y0) {
+      return [x0 + (u - v) * COS * S, y0 + (u + v) * SIN * S - z * S];
+    }
+    // 等轴测：把 (u,v) 平面上的「正方形」四角投影后就是顶面的菱形
+    function diamond(x0, y0, z, k) {
+      const kk = k == null ? 1 : k;
+      return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (p) {
+        return pr(p[0] * kk, p[1] * kk, z, x0, y0);
+      });
+    }
+    function pathOf(pts) {
+      ctx.beginPath();
+      pts.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+      ctx.closePath();
+    }
+    function hash(a, b, c) {
+      let h = (a * 374761393 + b * 668265263 + c * 2246822519) >>> 0;
+      h = ((h ^ (h >>> 13)) * 1274126177) >>> 0;
+      return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+    }
+    function dot(x, y, r, color) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+    }
 
-      "</div></section>" +
+    // ---- 一块玻璃板 ----
+    function slab(t, cfg) {
+      const bob = Math.sin(t * 0.5 + cfg.ph) * 0.02 * S;
+      const x0 = cx + cfg.dx * W + Math.cos(t * 0.36 + cfg.ph) * 0.006 * S;
+      const y0 = cy + cfg.dy * H + bob;
+      const z = 0;
+      const k = cfg.k;
+      const th = 0.05;
+      const top = diamond(x0, y0, z, k);
+      const bot = diamond(x0, y0, z - th, k);
 
-      // ==================== 二、关键指标 ====================
-      '<div class="grid g4">' +
-      stat("homeKpiRound", "已完成轮次", S.roundCount, "轮",
-        "本次会话推进 · 目标 8 轮闭环", "") +
-      stat("", "η10 过电位", A.fmt.num(last.eta10, 1), "mV",
-        "首轮 " + A.fmt.num(first.eta10, 1) + " → " + A.fmt.num(last.eta10, 1) + "，累计 ↓" + etaDrop + "%", "up") +
-      stat("", "Tafel 斜率", A.fmt.num(last.tafel, 1), "mV/dec",
-        "首轮 " + A.fmt.num(first.tafel, 1) + " → " + A.fmt.num(last.tafel, 1) + "，累计 ↓" + tafDrop + "%", "up") +
-      stat("homeAlarmAll", "异常处置", (S.alarms || []).length, "起",
-        "自动恢复 <b id='homeRecovered'>" + recovered + "</b> 起 · 待处理 <b id='homeAlarm2'>" + activeAlarms + "</b> 起", "") +
-      "</div>" +
+      // 厚度侧面
+      for (let i = 0; i < 4; i++) {
+        const j = (i + 1) % 4;
+        ctx.beginPath();
+        ctx.moveTo(top[i][0], top[i][1]);
+        ctx.lineTo(top[j][0], top[j][1]);
+        ctx.lineTo(bot[j][0], bot[j][1]);
+        ctx.lineTo(bot[i][0], bot[i][1]);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(8,7,13,.5)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(159,240,236,.14)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
 
-      // ==================== 三、三个模块入口（第一层 → 第二层） ====================
-      '<div class="sec-hd">功能模块<span class="muted">点卡片进入第 2 层 · 顶部一级导航也可直达</span></div>' +
-      '<div class="grid g3">' +
-      MODS.map(function (m) {
-        return '<div class="card modcard" data-go="' + m.key + '">' +
-          '<div class="mh"><div class="mi">' + m.ic + "</div>" +
-          '<div><div class="mt">' + K.esc(m.t) + '</div><div class="ms">' + m.sub + " · " + m.n + "</div></div></div>" +
-          '<div class="md">' + K.esc(m.d) + "</div>" +
-          '<div class="mp">' + m.pages.map(function (p) { return "<span>" + p + "</span>"; }).join("") + "</div>" +
-          '<div class="mg">进入模块 →</div></div>';
-      }).join("") +
-      "</div>" +
+      // 顶面
+      pathOf(top);
+      let g = null;
+      if (ctx.createLinearGradient) {
+        g = ctx.createLinearGradient(top[2][0], top[2][1], top[0][0], top[0][1]);
+        if (g && g.addColorStop) { g.addColorStop(0, cfg.a); g.addColorStop(1, cfg.b); }
+      }
+      ctx.save();
+      ctx.globalAlpha = cfg.o;
+      ctx.fillStyle = (g && g.addColorStop) ? g : cfg.a;
+      ctx.fill();
+      ctx.restore();
 
-      // ==================== 四、闭环成效 ====================
-      K.card("闭环优化成效",
-        '<div class="conv-wrap">' +
-        '<div><canvas id="homeConv" style="width:100%;height:226px"></canvas></div>' +
-        '<div class="conv-side">' +
-        K.kv("首轮 η10", A.fmt.num(first.eta10, 1) + " mV") +
-        K.kv("最新 η10", "<b>" + A.fmt.num(last.eta10, 1) + " mV</b>") +
-        K.kv("目标线", "≤ 60 mV") +
-        K.kv("累计降幅", "↓ " + etaDrop + " %") +
-        K.kv("Tafel", A.fmt.num(first.tafel, 1) + " → " + A.fmt.num(last.tafel, 1)) +
-        K.kv("历史轮次", rounds.length + " 轮（含 1 次失败重试）") +
-        '<div class="muted" style="font-size:11.5px;line-height:1.7;margin-top:8px">' +
-        "停止判据：连续 3 轮改进 &lt; 2% 或达轮次上限，满足即转入归档与人工确认。</div>" +
-        "</div></div>",
-        rounds.length + " 轮 · 目标 60 mV") +
+      // 顶面描边 + 发光
+      ctx.save();
+      ctx.shadowColor = cfg.glow || cfg.b;
+      ctx.shadowBlur = 14;
+      ctx.strokeStyle = "rgba(255,255,255,.42)";
+      ctx.lineWidth = 1.1;
+      pathOf(top);
+      ctx.stroke();
+      ctx.restore();
 
-      // ==================== 五、导览路线（直达下钻） ====================
-      '<div class="sec-hd">现场导览<span class="muted">约 3 分钟 · 每步都是一次下钻</span></div>' +
-      '<div class="steps">' +
-      GUIDE.map(function (g, i) {
-        return '<div class="step" data-go="' + g.go + '">' +
-          '<div class="n">' + (i + 1) + "</div>" +
-          '<div class="t">' + K.esc(g.t) + "</div>" +
-          '<div class="d">' + K.esc(g.d) + "</div></div>";
-      }).join("") +
-      "</div>" +
+      return { x0: x0, y0: y0, z: z, top: top, k: k };
+    }
 
-      // ==================== 六、能力边界 ====================
-      '<div class="sec-hd">能力边界<span class="muted">如实标注，不做过度承诺</span></div>' +
-      '<div class="honest">' +
-      '<div class="honest-t">⚠ 本页面为功能演示版本（v0.3），以下四点请按实说明</div>' +
-      "<ul>" +
-      "<li><b>数据为模拟</b>：轮次、曲线、部件参数由固定随机种子生成，用于演示交互与流程，<u>非真实实验结果</u>。</li>" +
-      "<li><b>Agent 为脚本化</b>：对话应答与候选配方基于预置规则与证据模板，未接入大模型；一句话下单为规则解析。</li>" +
-      "<li><b>3D 为低模占位</b>：等轴测线框示意，非 CAD 工程模型；接入真实模型后沿用同一部件命名与着色接口。</li>" +
-      "<li><b>未连接硬件</b>：未与真实蠕动泵 / 电化学工作站通信；数据层以 MockSource 隔离，替换为 HttpSource 即可对接。</li>" +
-      "</ul></div>" +
+    // 内容通用：裁剪到顶面
+    function clipped(sl, fn) {
+      ctx.save();
+      pathOf(sl.top);
+      ctx.clip();
+      fn();
+      ctx.restore();
+    }
 
-      // ==================== 七、配套文档 ====================
-      '<div class="card docidx" style="margin-top:12px"><h3>配套文档<span class="tag">同一仓库</span></h3>' +
-      '<div class="docs">' +
-      '<a href="../' + encodeURI("作品报告书-基于AI Agent的析氢催化剂智能优化系统.docx") + '">📄 作品报告书</a>' +
-      '<a href="../' + encodeURI("平台改造/平台改造需求规格书.md") + '">🧩 平台改造需求规格书</a>' +
-      '<a href="' + encodeURI("产品制作方案.md") + '">🗺 产品制作方案</a>' +
-      '<a href="../' + encodeURI("Git使用说明.md") + '">🌿 Git 使用说明</a>' +
-      "</div>" +
-      '<div class="muted" style="font-size:11.5px;margin-top:8px">' +
-      "初稿 v0.3 · 目标 2026-11-10 提交 · 本地双击 index.html 即可运行，无需服务器</div>" +
-      "</div>";
-
-    // ---------- 交互 ----------
-    const hb = root.querySelector("#heroBtn");
-    if (hb) {
-      hb.addEventListener("click", function () {
-        const was = A.state.running;
-        A.sim.toggle();
-        if (!was) A.go("monitor/dashboard");   // 启动后直接进入驾驶舱看推进
-        else A.render();
+    // ① 数据点网格 + 流动粒子
+    function cPoints(t, sl) {
+      clipped(sl, function () {
+        const k = sl.k;
+        for (let i = -3; i <= 3; i++) {
+          for (let j = -3; j <= 3; j++) {
+            const u = i / 3.6, v = j / 3.6;
+            if (Math.max(Math.abs(u), Math.abs(v)) > 0.95) continue;
+            const p = pr(u * k, v * k, sl.z + 0.005, sl.x0, sl.y0);
+            dot(p[0], p[1], 1.1, "rgba(200,255,250,.35)");
+          }
+        }
+        dot(pr(0, 0, sl.z + 0.005, sl.x0, sl.y0)[0], pr(0, 0, sl.z + 0.005, sl.x0, sl.y0)[1], 2.2, "rgba(210,255,252,.75)");
+        // 流动粒子
+        for (let r = -1; r <= 1; r++) {
+          const v = r * 0.55;
+          const flow = (t * 0.12 + r * 0.31) % 1;
+          for (let q = 0; q < 4; q++) {
+            const u = -0.9 + ((q / 4 + flow) % 1) * 1.8;
+            if (Math.max(Math.abs(u), Math.abs(v)) > 0.92) continue;
+            const p = pr(u * k, v * k, sl.z + 0.01, sl.x0, sl.y0);
+            const a = 0.35 + 0.45 * Math.abs(Math.sin(t * 1.6 + q + r));
+            dot(p[0], p[1], 1.5, "rgba(205,255,250," + a.toFixed(2) + ")");
+          }
+        }
       });
     }
 
-    // ---------- 收敛曲线 ----------
-    const pts = rounds.map(function (r, i) { return [i, r.metrics.eta10]; });
-    K.lineChart(root.querySelector("#homeConv"), [
-      { name: "η10 (mV)", color: "#22d3ee", pts: pts, width: 2.2 },
-      { name: "目标 60 mV", color: "#fbbf24", dash: true, width: 1.5, pts: [[0, 60], [rounds.length - 1, 60]] },
-    ], {
-      xlim: [0, rounds.length - 1], ylim: [50, 130], marker: true,
-      xTicks: rounds.map(function (r, i) { return i; }).filter(function (i) { return i % 2 === 0; }),
-      xFmt: function (v) { return "R-" + String(Math.round(v) + 1).padStart(3, "0"); },
-      yFmt: function (v) { return v.toFixed(0); },
-      yLabel: "η10 / mV",
-    });
+    // ② 流动光波
+    function cWaves(t, sl) {
+      clipped(sl, function () {
+        const k = sl.k;
+        for (let r = 0; r < 3; r++) {
+          const v = -0.5 + r * 0.5;
+          ctx.beginPath();
+          for (let i = 0; i <= 44; i++) {
+            const u = -0.95 + (i / 44) * 1.9;
+            const zz = sl.z + 0.02 + Math.sin(u * 3.4 + t * 1.6 + r) * 0.05;
+            const p = pr(u * k, v * k, zz, sl.x0, sl.y0);
+            i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
+          }
+          ctx.strokeStyle = "rgba(175,248,242," + (0.5 - r * 0.08).toFixed(2) + ")";
+          ctx.lineWidth = 1.1;
+          ctx.stroke();
+        }
+      });
+    }
 
-    // ---------- 低频软刷新（不重绘整页，避免曲线闪烁） ----------
-    A.onTick = function () {
-      const s = A.state;
-      const ui = stateOf();
-      const el = function (id) { return document.getElementById(id); };
-      const set = function (id, v) { const e = el(id); if (e) e.textContent = v; };
+    // ③ 像素块闪烁
+    function cPixels(t, sl) {
+      clipped(sl, function () {
+        const k = sl.k;
+        for (let i = -3; i <= 3; i++) {
+          for (let j = -3; j <= 3; j++) {
+            const u = i / 3.6, v = j / 3.6;
+            if (Math.max(Math.abs(u), Math.abs(v)) > 0.9) continue;
+            const n = hash(i, j, Math.floor(t * 2.2));
+            if (n < 0.28) continue;
+            const sz = 0.035 + n * 0.03;
+            const pts = [[u + sz, v], [u, v + sz], [u - sz, v], [u, v - sz]].map(function (p) {
+              return pr(p[0] * k, p[1] * k, sl.z + 0.01, sl.x0, sl.y0);
+            });
+            pathOf(pts);
+            ctx.fillStyle = n > 0.7
+              ? "rgba(159,240,236," + (0.1 + n * 0.26).toFixed(2) + ")"
+              : "rgba(109,90,220," + (0.08 + n * 0.22).toFixed(2) + ")";
+            ctx.fill();
+          }
+        }
+      });
+    }
 
-      const dot = el("homeDot");
-      if (dot) dot.className = "dot " + ui.cls;
-      set("homeState", ui.text);
-      set("homeStep", A.sim.currentStep().name);
-      set("homeProg", (A.sim.roundProgress() * 100).toFixed(0) + "%");
-      set("homeRound", s.roundCount);
-      set("homeKpiRound", s.roundCount);
+    // ④ 紫色雾
+    function cHaze(t, sl) {
+      clipped(sl, function () {
+        if (!ctx.createRadialGradient) return;
+        const g = ctx.createRadialGradient(sl.x0, sl.y0, 4, sl.x0, sl.y0, S * 0.9);
+        if (!g || !g.addColorStop) return;
+        g.addColorStop(0, "rgba(140,110,255,.28)");
+        g.addColorStop(1, "rgba(77,25,177,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(sl.x0, sl.y0, S * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
 
-      const bar = el("homeBar");
-      if (bar && bar.firstChild) bar.firstChild.style.width = (A.sim.roundProgress() * 100).toFixed(1) + "%";
+    // 背景光 + 微粒
+    function backdrop(t) {
+      if (ctx.createRadialGradient) {
+        const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(W, H) * 0.55);
+        if (g && g.addColorStop) {
+          g.addColorStop(0, "rgba(109,90,220,.16)");
+          g.addColorStop(0.55, "rgba(77,25,177,.07)");
+          g.addColorStop(1, "rgba(13,12,17,0)");
+          ctx.save();
+          if ("globalCompositeOperation" in ctx) ctx.globalCompositeOperation = "lighter";
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(cx, cy, Math.max(W, H) * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      for (let i = 0; i < 14; i++) {
+        const seed = hash(i, 7, 3);
+        const x = (seed * W + t * (5 + seed * 8)) % (W + 40) - 20;
+        const y = (hash(i, 11, 5) * H + Math.sin(t * 0.4 + i) * 6 + H) % H;
+        const a = 0.08 + 0.16 * Math.abs(Math.sin(t * 0.6 + i));
+        dot(x, y, 0.8 + seed * 0.7, "rgba(159,240,236," + a.toFixed(3) + ")");
+      }
+    }
 
-      const active = (s.alarms || []).filter(function (a) { return !a.recovered; }).length;
-      set("homeAlarm", active);
-      set("homeAlarm2", active);
-      set("homeAlarmAll", (s.alarms || []).length);
-      set("homeRecovered", (s.alarms || []).filter(function (a) { return a.recovered; }).length);
+    // 四块板：由下到上，越上面越小、越往上
+    const LEVELS = [
+      { dy: 0.160, dx: -0.055, k: 1.00, ph: 0.0, o: 0.52, a: "rgba(77,25,177,.42)", b: "rgba(109,90,220,.22)", content: cHaze },
+      { dy: 0.042, dx: -0.019, k: 0.93, ph: 0.6, o: 0.48, a: "rgba(96,120,225,.34)", b: "rgba(120,180,240,.20)", content: cPixels },
+      { dy: -0.078, dx: 0.019, k: 0.86, ph: 1.2, o: 0.46, a: "rgba(120,205,240,.24)", b: "rgba(170,245,240,.20)", content: cWaves },
+      { dy: -0.196, dx: 0.055, k: 0.79, ph: 1.8, o: 0.44, a: "rgba(150,235,235,.24)", b: "rgba(215,255,252,.14)", content: cPoints },
+    ];
 
-      const b = el("heroBtn");
-      if (b) b.textContent = s.running ? "⏸ 暂停运行" : "▶ 启动模拟运行";
-    };
+    function drawAt(t) {
+      if (!ctx.clearRect) return;
+      ctx.clearRect(0, 0, W, H);
+      backdrop(t);
+      LEVELS.forEach(function (cfg) {
+        const sl = slab(t, cfg);
+        cfg.content(t, sl);
+      });
+    }
+
+    if (REDUCE || NOANIM || !window.requestAnimationFrame) {
+      drawAt(2.4);
+      return;
+    }
+
+    const t0 = (window.performance && window.performance.now) ? window.performance.now() : Date.now();
+    function frame(ts) {
+      if (A.state.page !== "home") { artRaf = 0; return; }
+      drawAt(((ts || Date.now()) - t0) / 1000);
+      artRaf = window.requestAnimationFrame(frame);
+    }
+    artRaf = window.requestAnimationFrame(frame);
+
+    if (window.addEventListener) {
+      window.addEventListener("resize", function () {
+        if (!document.body || !document.body.contains(mount)) return;
+        measure();
+      });
+    }
+  }
+
+  // ============================================================
+  // 三、视图
+  // ============================================================
+  const ICON_NET =
+    '<svg viewBox="0 0 32 32" fill="none" stroke="#9ff0ec" stroke-width="1.5" stroke-linecap="round">' +
+    '<path d="M8 9.5 16 5l8 4.5v9L16 23l-8-4.5z" opacity=".4"/>' +
+    '<circle cx="16" cy="5" r="2.3"/><circle cx="24" cy="9.5" r="2.3"/><circle cx="24" cy="18.5" r="2.3"/>' +
+    '<circle cx="16" cy="23" r="2.3"/><circle cx="8" cy="18.5" r="2.3"/><circle cx="8" cy="9.5" r="2.3"/>' +
+    '<circle cx="16" cy="14" r="2" fill="#9ff0ec" stroke="none"/>' +
+    '<path d="M16 7.3v4.7M21.9 10.8 18 12.8M21.9 17.3 18 15.3M16 20.7v-4.7M10.1 17.3 14 15.3M10.1 10.8 14 12.8" opacity=".85"/></svg>';
+
+  const ICON_FORT =
+    '<svg viewBox="0 0 32 32" fill="none" stroke="#9ff0ec" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M16 4 5.5 8.5v8.2C5.5 23.4 10 27.4 16 28.6c6-1.2 10.5-5.2 10.5-11.9V8.5z" opacity=".45"/>' +
+    '<path d="M16 7.6 8.8 10.7v6c0 4.9 3.1 8 7.2 8.9 4.1-.9 7.2-4 7.2-8.9v-6z"/>' +
+    '<rect x="12.6" y="13.4" width="6.8" height="5.6" rx="1.4"/>' +
+    '<path d="M14.2 13.4v-1.5a1.8 1.8 0 0 1 3.6 0v1.5"/>' +
+    '<circle cx="16" cy="16" r=".85" fill="#9ff0ec" stroke="none"/></svg>';
+
+  A.views.home = function (root) {
+    viewRoot = root;
+    stopArt();
+
+    const rounds = D.ROUNDS.length;
+    const parts = D.PARTS.length;
+    const still = REDUCE || NOANIM;
+
+    root.innerHTML =
+      '<section class="hv' + (still ? " hv-nomotion" : "") + '">' +
+      '<div class="hv-canvas">' +
+
+      // ---------- 左栏 ----------
+      '<div class="hv-copy">' +
+      '<span class="hv-eyebrow" style="--d:.08s"><i></i>演示数据 · 模拟运行</span>' +
+      '<h1 class="hv-h1">' +
+      '<span class="hv-linewrap"><span class="hv-line" style="--d:.16s">让每一次实验</span></span>' +
+      '<span class="hv-linewrap"><span class="hv-line" style="--d:.28s">都建立在可查</span></span>' +
+      '<span class="hv-linewrap"><span class="hv-line" style="--d:.40s">的数据之上。</span></span>' +
+      "</h1>" +
+      '<p class="hv-sub" style="--d:.62s">平台把已验证的实验数据、电化学表征与审计记录逐层叠起来，' +
+      "供催化研发团队、检测机构与产线运维共用同一份事实。</p>" +
+      '<div class="hv-btns">' +
+      '<button class="hv-btn hv-btn--primary" id="hvStart" style="--d:.74s">▶ 启动模拟运行</button>' +
+      '<button class="hv-btn hv-btn--glass" data-go="monitor" style="--d:.84s">进入运行监控</button>' +
+      "</div>" +
+      '<div class="hv-stats">' +
+      '<div class="hv-stat" style="--d:.96s"><b>' + rounds + "</b><span>轮闭环寻优</span></div>" +
+      '<div class="hv-stat" style="--d:1.05s"><b>' + parts + "</b><span>台部件在监控</span></div>" +
+      '<div class="hv-stat" style="--d:1.14s"><b>5</b><span>类故障剧本</span></div>' +
+      "</div>" +
+      "</div>" +
+
+      // ---------- 右侧艺术区 + 玻璃卡 ----------
+      '<div class="hv-stage">' +
+      '<div class="hv-art"><canvas id="hvArt"></canvas></div>' +
+
+      '<div class="hv-card hv-card--a" style="--d:1.18s">' +
+      '<div class="ic">' + ICON_NET + "</div>" +
+      '<div class="hv-kicker">Benchmarking · 基准评估</div>' +
+      '<div class="hv-title">双基准判定：LSV 与 Tafel<br>每轮结论自动归档。</div>' +
+      "</div>" +
+
+      '<div class="hv-card hv-card--b" style="--d:1.32s">' +
+      '<div class="ic">' + ICON_FORT + "</div>" +
+      '<div class="hv-kicker">Red-team · 红队注入</div>' +
+      '<div class="hv-title">5 类故障剧本<br>挂起 · 处置 · 续跑留痕。</div>' +
+      "</div>" +
+      "</div>" +
+
+      // ---------- 底部 ----------
+      '<div class="hv-logos">' +
+      '<span class="hv-logo hv-logo--bi" style="--d:1.50s">Ni–Mo</span>' +
+      '<span class="hv-logo hv-logo--bi" style="--d:1.57s">GP–EI</span>' +
+      '<span class="hv-logo hv-logo--wide" style="--d:1.64s">digital twin</span>' +
+      '<span class="hv-logo hv-logo--caps" style="--d:1.71s">MODBUS · SCPI</span>' +
+      "</div>" +
+      '<div class="hv-foot" style="--d:1.72s"><b>DEMO</b> · 界面数据为模拟生成，非真实实验结果</div>' +
+
+      "</div></section>";
+
+    fitUnit(root);
+
+    // 画布尺寸需等布局完成后再量
+    const raf = window.requestAnimationFrame;
+    if (raf) {
+      raf(function () { if (A.state.page === "home") startArt(root.querySelector(".hv-art")); });
+    } else {
+      startArt(root.querySelector(".hv-art"));
+    }
+
+    // 兜底：若动画时钟未推进（部分无头/低配环境），2.2s 后强制显示终态
+    if (!still) {
+      window.setTimeout(function () {
+        if (A.state.page !== "home" || !document.body.contains(root)) return;
+        const probe = root.querySelector(".hv-card--a");
+        if (!probe) return;
+        const op = window.getComputedStyle ? parseFloat(window.getComputedStyle(probe).opacity) : 1;
+        if (!(op > 0.5)) {
+          const sec = root.querySelector(".hv");
+          if (sec && sec.classList) sec.classList.add("hv-nomotion");
+        }
+      }, 2200);
+    }
+
+    // 主按钮：启动模拟并进入驾驶舱
+    const btn = root.querySelector("#hvStart");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        const was = A.state.running;
+        A.sim.toggle();
+        if (!was) A.go("monitor/dashboard");
+        else A.render();
+      });
+    }
   };
 })(window.APP, window.DATA);

@@ -150,6 +150,8 @@
     const root = $("view");
     if (!root) return;
     root.innerHTML = "";
+    // 首页全幅铺满（其他页面保持原内边距）
+    if (root.classList && root.classList.toggle) root.classList.toggle("bleed", r.view === "home");
     A.onTick = null;                 // 视图可注册低频软刷新（首页/模块总览用）
     const fn = A.views[r.view] || A.views.home;
     try {

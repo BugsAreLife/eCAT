@@ -33,7 +33,7 @@ eCAT/
 │
 ├── 展示网页/                       ← 管控软件（网页应用，双击 index.html 可运行）
 │   ├── index.html  app.js          应用入口（顶栏 + 顶部导航窗格 + 多级路由）
-│   ├── assets/                     app.css（深色科技风）+ data.js（模拟数据）
+│   ├── assets/                     hero.css（首页 Hero）+ app.css（设计系统）+ data.js（模拟数据）
 │   ├── core/                       bus.js（状态/事件/信息架构）+ sim.js（状态机/假设备）
 │   ├── ui/kit.js                   组件 + 自绘图表 + 页面头
 │   ├── views/                      9 个视图（首页 / 模块总览 / 6 个功能页 / 轮次详情）
