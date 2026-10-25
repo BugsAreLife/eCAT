@@ -1,0 +1,23 @@
+# ---- Office / Word 临时文件（打开文档时自动生成，切勿入库）----
+~$*.docx
+~$*.xlsx
+~$*.pptx
+~$*.doc
+*.tmp
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- 构建与预览中间产物 ----
+_*.pdf
+_pv*/
+_checks.json
+_tpl_pages/
+_build*.pdf
+
+# ---- 系统垃圾 ----
+Thumbs.db
+desktop.ini
+.DS_Store
