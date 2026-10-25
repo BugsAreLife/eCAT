@@ -71,12 +71,18 @@
     ).join("");
 
     root.innerHTML =
+      K.pagehead("✦", "Agent 工作台", "AGENT · 候选配方 / 证据链 / 人工批准", "ops", "智能编排") +
       '<div class="grid g23">' +
-      K.card("Agent 对话", '<div style="max-height:300px;overflow:auto;padding-right:4px">' + chatHtml + "</div>" +
-        '<div style="display:flex;gap:8px;margin-top:10px">' +
+      K.card("Agent 对话", '<div id="chatBox" style="height:330px;overflow:auto;padding-right:4px">' + chatHtml + "</div>" +
+        '<div style="margin-top:10px">' +
+        ["这轮为什么失败？", "下一轮试什么配方？", "现在有什么异常？"].map(function (q) {
+          return '<span class="qchip" data-q="' + K.esc(q) + '">' + K.esc(q) + "</span>";
+        }).join("") + "</div>" +
+        '<div style="display:flex;gap:8px;margin-top:8px">' +
         '<input id="chatIn" type="text" placeholder="问它：这轮为什么失败 / 下一轮试什么">' +
         '<button id="chatSend" class="primary">发送</button></div>' +
-        '<div class="muted" style="margin-top:8px">演示模式：脚本化应答；真实版本接 LLM API + 文献库检索</div>', "演示") +
+        '<div class="muted" style="margin-top:8px;font-size:11.5px">演示模式：脚本化应答；真实版本接 LLM API + 文献库检索。' +
+        "所有应答都会写入下方审计链。</div>", "演示") +
       K.card("推荐候选（闭环优化输出）", candHtml +
         '<div class="btnrow"><button id="btnApprove" class="primary">批准选中候选</button>' +
         '<button id="btnReject">否决</button></div>' +
@@ -108,6 +114,18 @@
     }
     root.querySelector("#chatSend").addEventListener("click", send);
     input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+    // 快捷提问
+    root.querySelectorAll("[data-q]").forEach(el => {
+      el.addEventListener("click", () => {
+        input.value = el.getAttribute("data-q");
+        send();
+      });
+    });
+
+    // 对话区滚到底
+    const box = root.querySelector("#chatBox");
+    if (box) box.scrollTop = box.scrollHeight;
 
     root.querySelectorAll("[data-cand]").forEach(el => {
       el.addEventListener("click", () => {

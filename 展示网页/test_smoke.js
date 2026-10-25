@@ -71,8 +71,9 @@ global.performance = { now: () => Date.now() };
 const dir = __dirname;
 const files = [
   "assets/data.js", "core/bus.js", "core/sim.js", "ui/kit.js",
-  "views/home.js", "views/dashboard.js", "views/twin.js", "views/archive.js",
-  "views/tasks.js", "views/agent.js", "views/logs.js", "app.js",
+  "views/home.js", "views/module.js", "views/dashboard.js", "views/twin.js",
+  "views/archive.js", "views/round.js", "views/tasks.js", "views/agent.js",
+  "views/logs.js", "app.js",
 ];
 
 let failed = 0;
@@ -92,21 +93,60 @@ for (const f of files) {
 const A = global.window.APP;
 if (!A) { console.log("APP 未初始化"); process.exit(1); }
 
-// ---------------- 渲染 7 个页面 ----------------
-console.log("\n--- 页面渲染 ---");
-for (const p of A.navOrder) {
+// ---------------- 按路由遍历（逐层下钻） ----------------
+console.log("\n--- 路由与视图渲染（" + A.allRoutes.length + " 条路径）---");
+const expect = {
+  "home": "home",
+  "monitor": "module", "data": "module", "ops": "module",
+  "monitor/dashboard": "dashboard", "monitor/twin": "twin", "monitor/logs": "logs",
+  "data/archive": "archive",
+  "data/archive/R-008": "round",
+  "ops/tasks": "tasks", "ops/agent": "agent",
+};
+for (const p of A.allRoutes) {
   try {
     A.go(p);
-    console.log("渲染 OK  " + p + "（" + A.navMeta[p].name + "）");
+    const view = A.state.page;
+    const ok = view === expect[p];
+    if (!ok) { failed++; }
+    console.log((ok ? "渲染 OK  " : "渲染 FAIL ") + p.padEnd(20) + "→ 视图 " + view +
+      "（" + A.state.route.path + "）");
   } catch (e) {
     failed++;
     console.log("渲染 FAIL " + p + " -> " + e.message);
   }
 }
 
+// ---------------- 层级 / 面包屑 ----------------
+console.log("\n--- 层级与面包屑 ---");
+try {
+  const cases = [
+    ["home", 1],
+    ["monitor", 2],
+    ["monitor/dashboard", 3],
+    ["data/archive/R-008", 4],
+  ];
+  cases.forEach(([path, depth]) => {
+    A.go(path);
+    const trail = A.trail().map(t => t.name).join(" › ");
+    const ok = A.trail().length === depth;
+    if (!ok) failed++;
+    console.log((ok ? "层级 OK  " : "层级 FAIL ") + path.padEnd(20) + "第 " + A.trail().length + " 层：" + trail);
+  });
+  // 未知路径应回退到首页
+  A.go("monitor/not-exist");
+  const fallbackOK = A.state.page === "module";
+  if (!fallbackOK) failed++;
+  console.log((fallbackOK ? "回退 OK  " : "回退 FAIL ") + "未知页面 → " + A.state.route.path);
+} catch (e) {
+  failed++;
+  console.log("层级 FAIL -> " + e.message);
+}
+
 // ---------------- 模拟推进 / 异常注入 ----------------
 console.log("\n--- 模拟与异常 ---");
 try {
+  A.go("monitor/dashboard");
   A.sim.start();
   for (let i = 0; i < 200; i++) A.sim.tick(0.5);       // 推进约 100 s，跨多轮
   console.log("运行 OK  已完成轮次 = " + A.state.roundCount + "，当前工序 = " + A.sim.currentStep().name);
@@ -116,7 +156,6 @@ try {
   console.log("恢复 OK  当前故障 = " + (A.state.fault ? "仍在" : "已清除"));
   A.sim.reset();
   A.sim.toggle();
-  A.go("dashboard");
   for (let i = 0; i < 8; i++) A.sim.tick(0.5);
   console.log("复位/重启 OK");
 } catch (e) {

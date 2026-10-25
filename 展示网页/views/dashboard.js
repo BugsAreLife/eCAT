@@ -23,8 +23,10 @@
 
     const dEta = cur.metrics.eta10 - prev.metrics.eta10;
     const dTaf = cur.metrics.tafel - prev.metrics.tafel;
+    const bestEta = rounds.reduce((a, r) => (r.metrics.eta10 < a ? r.metrics.eta10 : a), rounds[0].metrics.eta10);
 
     root.innerHTML =
+      K.pagehead("▦", "驾驶舱", "DASHBOARD · 工序推进与关键指标", "monitor", "运行监控") +
       banner +
       '<div class="grid g4">' +
       K.stat("已完成轮次", S.roundCount, "轮", "目标 8 轮 · 闭环优化中") +
@@ -45,13 +47,17 @@
       K.card("关键指标", '<div class="grid g2">' +
         K.stat("双电层电容 Cdl", A.fmt.num(cur.metrics.cdl, 2), "mF/cm²", "表征活性面积") +
         K.stat("100 h 衰减率", A.fmt.num(cur.metrics.decay100h, 1), "%", "目标 < 10%", cur.metrics.decay100h < 10 ? "up" : "down") +
+        K.kv("沉积温度", cur.recipe.tempC + " ℃") +
+        K.kv("电解液 pH", cur.recipe.pH + "（上限 9.5）") +
+        K.kv("沉积电位", cur.recipe.potential + " V") +
+        K.kv("沉积时间", cur.recipe.timeMin + " min") +
         "</div>") +
       K.card("闭环优化进度",
         '<div style="display:flex;align-items:center;gap:14px">' +
         '<div style="flex:1"><canvas id="spark" style="width:100%;height:64px"></canvas></div>' +
         '<div style="text-align:right">' +
-        '<div class="muted">最佳 η10</div>' +
-        '<div style="font-size:22px;font-weight:600">' + A.fmt.num(rounds[7].metrics.eta10, 1) + '<small> mV</small></div>' +
+        '<div class="muted">历史最优 η10</div>' +
+        '<div style="font-size:22px;font-weight:600"><span class="mono">' + A.fmt.num(bestEta, 1) + '</span><small> mV</small></div>' +
         "</div></div>" +
         K.kv("当前最优配方", "Mo " + Math.round(cur.recipe.moRatio * 100) + "% / " + cur.recipe.potential + " V") +
         K.kv("贝叶斯优化轮次", S.roundCount + " / 8") +
@@ -62,7 +68,7 @@
 
     // 迷你趋势
     const cv = root.querySelector("#spark");
-    A.kit.spark(cv, rounds.map((r, i) => [i, r.metrics.eta10]), "#0b5cad");
+    A.kit.spark(cv, rounds.map((r, i) => [i, r.metrics.eta10]), "#22d3ee");
 
     // 日志
     const lb = root.querySelector("#logbox");

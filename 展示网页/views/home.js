@@ -1,34 +1,37 @@
-/* 视图 ⓪：首页（项目总览 / 演示入口）
- * 职责：一屏讲清「这是什么 → 做到什么程度 → 评委怎么点」，并提供直达各功能页的入口。
+/* 视图（第一层）：首页（项目总览 / 演示入口）
+ * 职责：一屏讲清「这是什么 → 做到什么程度 → 怎么往下点」，并提供三个模块入口。
  * 诚实边界：本页所有指标来自 assets/data.js 的模拟数据，非真实实验结果。
  */
 (function (A, D) {
   "use strict";
   const K = A.kit;
 
-  // ---------- 核心能力卡（点击直达） ----------
-  const CAPS = [
-    { ic: "▦", t: "运行驾驶舱", tag: "驾驶舱", page: "dashboard",
-      d: "闭环轮次、5 道工序时间轴、实时指标与事件流一屏掌握，异常时横幅直接给出处置动作。" },
-    { ic: "◈", t: "数字孪生", tag: "孪生", page: "twin",
-      d: "机柜平台的三维还原，泵 / 烧杯 / 工作站按当前工序着色，故障部件即时变红并选中。" },
-    { ic: "▤", t: "实验档案", tag: "档案", page: "archive",
-      d: "每轮配方、LSV / Tafel 曲线、合格判定全留痕，任一历史轮次都能回溯比对。" },
-    { ic: "☰", t: "一句话下任务", tag: "任务", page: "tasks",
-      d: "自然语言 → 结构化目标 → 工序编排与安全校验；解析结果先给人确认，再下发执行。" },
-    { ic: "✦", t: "Agent 决策台", tag: "Agent", page: "agent",
-      d: "贝叶斯优化给出候选配方 + 证据链，人工批准后方可执行，决策过程可审计、不黑箱。" },
-    { ic: "⚠", t: "异常自恢复", tag: "告警", page: "logs",
-      d: "5 类故障注入演示：挂起 → 分级处置 → 检查点续跑，全程留痕，可展开诊断树。" },
+  // 第二层：三个模块（点进去是第一层 → 第二层的下钻）
+  const MODS = [
+    {
+      key: "monitor", ic: "◉", t: "运行监控", sub: "LIVE", n: "3 个页面",
+      d: "看平台此刻在干什么：工序推进、部件状态、异常处置与留痕。",
+      pages: ["驾驶舱", "数字孪生", "告警与日志"],
+    },
+    {
+      key: "data", ic: "▤", t: "实验数据", sub: "ARCHIVE", n: "1 个页面 · 11 条详情",
+      d: "看历史跑得怎么样：9 轮配方、LSV / Tafel 曲线，逐轮下钻到单轮证据。",
+      pages: ["实验档案", "轮次详情"],
+    },
+    {
+      key: "ops", ic: "✦", t: "智能编排", sub: "AGENT", n: "2 个页面",
+      d: "下一句任务，看 Agent 如何编排工序、给出候选并等待人工批准。",
+      pages: ["任务中心", "Agent 工作台"],
+    },
   ];
 
-  // ---------- 3 分钟导览路线 ----------
+  // 3 分钟导览（每一步都是一次真实下钻）
   const GUIDE = [
-    { t: "启动运行", d: "顶栏「▶ 启动」，看工序时间轴与部件状态联动推进。", page: "dashboard" },
-    { t: "看数字孪生", d: "泵 / 烧杯 / 工作站随工序高亮，异常部件变红。", page: "twin" },
-    { t: "注入异常", d: "顶栏「⚠ 注入异常」，观察分级告警、处置与自动恢复。", page: "logs" },
-    { t: "下一句任务", d: "任务中心输入一句话，检查解析出的目标与安全约束。", page: "tasks" },
-    { t: "批准候选", d: "Agent 台看候选配方与证据，人工批准后才下发。", page: "agent" },
+    { t: "启动运行", d: "顶栏「▶ 启动」，进驾驶舱看工序与指标联动。", go: "monitor/dashboard" },
+    { t: "看数字孪生", d: "泵 / 烧杯 / 工作站随工序高亮，异常部件变红。", go: "monitor/twin" },
+    { t: "注入异常", d: "顶栏「⚠ 注入异常」，看分级告警与自动恢复。", go: "monitor/logs" },
+    { t: "下钻一轮", d: "实验数据 → 档案 → 点 R-008，看第三层证据。", go: "data/archive/R-008" },
+    { t: "批准候选", d: "Agent 台看候选配方与证据，批准后才下发。", go: "ops/agent" },
   ];
 
   function stateOf() {
@@ -61,7 +64,7 @@
     root.innerHTML =
 
       // ==================== 一、Hero ====================
-      '<section class="home-hero"><div class="deco"></div>' +
+      '<section class="home-hero">' +
       '<div class="hero-grid">' +
 
       '<div class="hero-copy">' +
@@ -77,8 +80,8 @@
       "</div>" +
       '<div class="hero-btns">' +
       '<button class="hero-primary" id="heroBtn">' + (S.running ? "⏸ 暂停运行" : "▶ 启动模拟运行") + "</button>" +
-      '<button class="hero-ghost" data-go="dashboard">▦ 进入驾驶舱</button>' +
-      '<button class="hero-ghost" data-go="agent">✦ Agent 决策台</button>' +
+      '<button class="hero-ghost" data-go="monitor">◉ 进入运行监控</button>' +
+      '<button class="hero-ghost" data-go="ops/agent">✦ Agent 决策台</button>' +
       "</div>" +
       '<div class="hero-note">界面数据为<b>模拟生成</b>，用于流程与交互演示；非真实实验结果。</div>' +
       "</div>" +
@@ -86,7 +89,7 @@
       // 实时状态卡
       '<div class="hero-status">' +
       '<div class="hs-hd"><i class="dot ' + st.cls + '" id="homeDot"></i>' +
-      '<b id="homeState">' + st.text + '</b><span class="hs-live">实时刷新</span></div>' +
+      '<b id="homeState">' + st.text + '</b><span class="hs-live">每 250 ms 刷新</span></div>' +
       '<div class="kv"><span>当前工序</span><span id="homeStep">' + K.esc(step.name) + "</span></div>" +
       '<div class="kv"><span>本轮进度</span><span id="homeProg">' + prog.toFixed(0) + "%</span></div>" +
       '<div class="pbar" id="homeBar"><i style="width:' + prog.toFixed(1) + '%"></i></div>' +
@@ -109,7 +112,20 @@
         "自动恢复 <b id='homeRecovered'>" + recovered + "</b> 起 · 待处理 <b id='homeAlarm2'>" + activeAlarms + "</b> 起", "") +
       "</div>" +
 
-      // ==================== 三、闭环成效 ====================
+      // ==================== 三、三个模块入口（第一层 → 第二层） ====================
+      '<div class="sec-hd">功能模块<span class="muted">点卡片进入第 2 层 · 顶部一级导航也可直达</span></div>' +
+      '<div class="grid g3">' +
+      MODS.map(function (m) {
+        return '<div class="card modcard" data-go="' + m.key + '">' +
+          '<div class="mh"><div class="mi">' + m.ic + "</div>" +
+          '<div><div class="mt">' + K.esc(m.t) + '</div><div class="ms">' + m.sub + " · " + m.n + "</div></div></div>" +
+          '<div class="md">' + K.esc(m.d) + "</div>" +
+          '<div class="mp">' + m.pages.map(function (p) { return "<span>" + p + "</span>"; }).join("") + "</div>" +
+          '<div class="mg">进入模块 →</div></div>';
+      }).join("") +
+      "</div>" +
+
+      // ==================== 四、闭环成效 ====================
       K.card("闭环优化成效",
         '<div class="conv-wrap">' +
         '<div><canvas id="homeConv" style="width:100%;height:226px"></canvas></div>' +
@@ -125,25 +141,11 @@
         "</div></div>",
         rounds.length + " 轮 · 目标 60 mV") +
 
-      // ==================== 四、核心能力 ====================
-      '<div class="sec-hd">核心能力<span class="muted">点卡片直达对应页面</span></div>' +
-      '<div class="grid g3">' +
-      CAPS.map(function (c) {
-        return '<div class="card cap" data-go="' + c.page + '" title="进入 ' + K.esc(c.t) + '">' +
-          '<div class="cap-ic">' + c.ic + "</div>" +
-          '<div class="cap-bd">' +
-          '<div class="cap-t">' + K.esc(c.t) + '<span class="chip">' + K.esc(c.tag) + "</span></div>" +
-          '<div class="cap-d">' + K.esc(c.d) + "</div>" +
-          '<div class="cap-go">进入 →</div>' +
-          "</div></div>";
-      }).join("") +
-      "</div>" +
-
-      // ==================== 五、导览路线 ====================
-      '<div class="sec-hd">现场导览<span class="muted">约 3 分钟 · 按顺序点击</span></div>' +
+      // ==================== 五、导览路线（直达下钻） ====================
+      '<div class="sec-hd">现场导览<span class="muted">约 3 分钟 · 每步都是一次下钻</span></div>' +
       '<div class="steps">' +
       GUIDE.map(function (g, i) {
-        return '<div class="step" data-go="' + g.page + '">' +
+        return '<div class="step" data-go="' + g.go + '">' +
           '<div class="n">' + (i + 1) + "</div>" +
           '<div class="t">' + K.esc(g.t) + "</div>" +
           '<div class="d">' + K.esc(g.d) + "</div></div>";
@@ -153,7 +155,7 @@
       // ==================== 六、能力边界 ====================
       '<div class="sec-hd">能力边界<span class="muted">如实标注，不做过度承诺</span></div>' +
       '<div class="honest">' +
-      '<div class="honest-t">⚠ 本页面为功能演示版本（v0.1），以下四点请按实说明</div>' +
+      '<div class="honest-t">⚠ 本页面为功能演示版本（v0.3），以下四点请按实说明</div>' +
       "<ul>" +
       "<li><b>数据为模拟</b>：轮次、曲线、部件参数由固定随机种子生成，用于演示交互与流程，<u>非真实实验结果</u>。</li>" +
       "<li><b>Agent 为脚本化</b>：对话应答与候选配方基于预置规则与证据模板，未接入大模型；一句话下单为规则解析。</li>" +
@@ -170,20 +172,16 @@
       '<a href="../' + encodeURI("Git使用说明.md") + '">🌿 Git 使用说明</a>' +
       "</div>" +
       '<div class="muted" style="font-size:11.5px;margin-top:8px">' +
-      "初稿 v0.1 · 目标 2026-11-10 提交 · 本地双击 index.html 即可运行，无需服务器</div>" +
+      "初稿 v0.3 · 目标 2026-11-10 提交 · 本地双击 index.html 即可运行，无需服务器</div>" +
       "</div>";
 
     // ---------- 交互 ----------
-    root.querySelectorAll("[data-go]").forEach(function (el) {
-      el.addEventListener("click", function () { A.go(el.getAttribute("data-go")); });
-    });
-
     const hb = root.querySelector("#heroBtn");
     if (hb) {
       hb.addEventListener("click", function () {
         const was = A.state.running;
         A.sim.toggle();
-        if (!was) A.go("dashboard");     // 启动后直接进入驾驶舱看推进
+        if (!was) A.go("monitor/dashboard");   // 启动后直接进入驾驶舱看推进
         else A.render();
       });
     }
@@ -191,8 +189,8 @@
     // ---------- 收敛曲线 ----------
     const pts = rounds.map(function (r, i) { return [i, r.metrics.eta10]; });
     K.lineChart(root.querySelector("#homeConv"), [
-      { name: "η10 (mV)", color: "#0b5cad", pts: pts, width: 2.2 },
-      { name: "目标 60 mV", color: "#e39a12", dash: true, width: 1.5, pts: [[0, 60], [rounds.length - 1, 60]] },
+      { name: "η10 (mV)", color: "#22d3ee", pts: pts, width: 2.2 },
+      { name: "目标 60 mV", color: "#fbbf24", dash: true, width: 1.5, pts: [[0, 60], [rounds.length - 1, 60]] },
     ], {
       xlim: [0, rounds.length - 1], ylim: [50, 130], marker: true,
       xTicks: rounds.map(function (r, i) { return i; }).filter(function (i) { return i % 2 === 0; }),

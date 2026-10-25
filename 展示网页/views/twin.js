@@ -21,7 +21,7 @@
 
     // 背景网格（示意"设计视图"）
     ctx.save();
-    ctx.strokeStyle = "#e8eef6";
+    ctx.strokeStyle = "rgba(56,189,248,.08)";
     ctx.lineWidth = 1;
     for (let x = 0; x < W; x += 28) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
     for (let y = 0; y < H; y += 28) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
@@ -35,7 +35,7 @@
     function line(a, b, color, width, dash) {
       const p1 = iso(a[0], a[1], a[2]), p2 = iso(b[0], b[1], b[2]);
       ctx.save();
-      ctx.strokeStyle = color || "#9fb0c4";
+      ctx.strokeStyle = color || "#4a7ba6";
       ctx.lineWidth = width || 1.6;
       if (dash) ctx.setLineDash(dash);
       ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
@@ -57,12 +57,12 @@
           ctx.beginPath();
           f.forEach((p, k) => k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
           ctx.closePath();
-          ctx.fillStyle = ["rgba(255,255,255,.72)", "rgba(236,242,249,.85)", "rgba(222,231,241,.85)"][i];
+          ctx.fillStyle = ["rgba(30,58,88,.9)", "rgba(20,42,68,.92)", "rgba(15,32,52,.92)"][i];
           ctx.fill();
           ctx.restore();
         });
       }
-      ctx.strokeStyle = color || "#8fa2b8";
+      ctx.strokeStyle = color || "#3f6b93";
       ctx.lineWidth = 1.5;
       const edges = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
       edges.forEach(e => {
@@ -74,12 +74,12 @@
     }
 
     // 机柜主体（宽 0.9 × 深 0.7 × 高 1.7，单位米）
-    box(-0.45, 0, -0.35, 0.45, 1.7, 0.35, "#7f93aa", true);
+    box(-0.45, 0, -0.35, 0.45, 1.7, 0.35, "#4a7ba6", true);
     // 层板
     [0.10, 0.50, 0.90, 1.24, 1.66].forEach(y => {
       const p = [iso(-0.42, y, -0.32), iso(0.42, y, -0.32), iso(0.42, y, 0.32), iso(-0.42, y, 0.32)];
       ctx.save();
-      ctx.strokeStyle = "#a8b8cb"; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "rgba(96,165,250,.45)"; ctx.lineWidth = 1.2;
       ctx.beginPath();
       p.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
       ctx.closePath(); ctx.stroke(); ctx.restore();
@@ -88,7 +88,7 @@
     // 部件示意（按工序状态着色）
     const colorOf = name => {
       const st = A.sim.partStateOf(name);
-      return st === "running" ? "#2f9e57" : st === "error" ? "#d03434" : st === "warn" ? "#e39a12" : "#93a6bb";
+      return st === "running" ? "#34d399" : st === "error" ? "#f87171" : st === "warn" ? "#fbbf24" : "#3f6488";
     };
     // 六路泵
     for (let i = 0; i < 6; i++) {
@@ -114,16 +114,16 @@
     ctx.rotate(-0.22);
     ctx.textAlign = "center";
     ctx.font = "600 26px 'Microsoft YaHei',sans-serif";
-    ctx.fillStyle = "rgba(140,160,185,.18)";
+    ctx.fillStyle = "rgba(120,200,230,.14)";
     ctx.fillText("3D 模型占位", 0, 0);
     ctx.font = "12.5px 'Microsoft YaHei',sans-serif";
-    ctx.fillStyle = "rgba(140,160,185,.30)";
+    ctx.fillStyle = "rgba(120,200,230,.22)";
     ctx.fillText("待接入 engine3d.js / scene.js（与 CAD 一致的机柜模型）", 0, 24);
     ctx.restore();
 
     // 底部说明
     ctx.save();
-    ctx.fillStyle = "#8b9aad";
+    ctx.fillStyle = "#7f9ab5";
     ctx.font = "11.5px 'Microsoft YaHei',sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("等轴测线框占位 · 当前工序：" + A.sim.currentStep().name, 12, H - 12);
@@ -133,6 +133,7 @@
   A.views.twin = function (root) {
     const S = A.state;
     root.innerHTML =
+      K.pagehead("◈", "数字孪生", "TWIN · 3D 部件状态（低模占位，待接入真实模型）", "monitor", "运行监控") +
       '<div class="twin-wrap">' +
       '<div class="twin-canvas"><canvas id="twinCv"></canvas>' +
       '<div class="twin-badge">占位图 · 3D 模型待接入</div></div>' +

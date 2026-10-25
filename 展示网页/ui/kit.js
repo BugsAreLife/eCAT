@@ -74,6 +74,16 @@ window.APP = window.APP || {};
     return '<div class="kv"><span>' + K.esc(k) + "</span><span>" + v + "</span></div>";
   };
 
+  /** 页面头部：图标 + 标题 + 副标题 + 返回上级（配合顶部导航的逐层下钻） */
+  K.pagehead = function (ic, title, sub, backPath, backText) {
+    return '<div class="pagehead">' +
+      '<div class="ph-ic">' + ic + "</div>" +
+      "<div><h2>" + K.esc(title) + "</h2>" +
+      '<div class="ph-sub">' + (sub || "") + "</div></div>" +
+      (backPath ? '<div class="ph-back" data-go="' + backPath + '">← ' + K.esc(backText || "返回上级") + "</div>" : "") +
+      "</div>";
+  };
+
   // ============================================================
   // 二、图表（Canvas 自绘）
   // ============================================================
@@ -94,9 +104,9 @@ window.APP = window.APP || {};
 
   function axes(ctx, W, H, pad, xlim, ylim, opts) {
     ctx.save();
-    ctx.strokeStyle = "#e6ecf3";
+    ctx.strokeStyle = "rgba(148,163,184,.14)";
     ctx.lineWidth = 1;
-    ctx.fillStyle = "#8494a8";
+    ctx.fillStyle = "#8ba3bd";
     ctx.font = "11px 'Microsoft YaHei',sans-serif";
     // 横向网格 + y 轴刻度
     const ny = 4;
@@ -127,7 +137,7 @@ window.APP = window.APP || {};
     // 轴标签
     if (opts.xLabel) {
       ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-      ctx.fillStyle = "#6b7787";
+      ctx.fillStyle = "#7f9ab5";
       ctx.fillText(opts.xLabel, W - pad.r, H - 2);
     }
     if (opts.yLabel) {
@@ -135,7 +145,7 @@ window.APP = window.APP || {};
       ctx.translate(11, pad.t + 6);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = "right"; ctx.textBaseline = "top";
-      ctx.fillStyle = "#6b7787";
+      ctx.fillStyle = "#7f9ab5";
       ctx.fillText(opts.yLabel, 0, 0);
       ctx.restore();
     }
@@ -161,7 +171,7 @@ window.APP = window.APP || {};
     axes(ctx, W, H, pad, xlim, ylim, opts);
     series.forEach(se => {
       ctx.save();
-      ctx.strokeStyle = se.color || "#0b5cad";
+      ctx.strokeStyle = se.color || "#22d3ee";
       ctx.lineWidth = se.width || 2;
       if (se.dash) ctx.setLineDash([5, 4]);
       ctx.beginPath();
@@ -171,7 +181,7 @@ window.APP = window.APP || {};
       });
       ctx.stroke();
       if (opts.marker) {
-        ctx.fillStyle = se.color || "#0b5cad";
+        ctx.fillStyle = se.color || "#22d3ee";
         se.pts.forEach(p => {
           const xy = toXY(pad, W, H, xlim, ylim, p[0], p[1]);
           ctx.beginPath(); ctx.arc(xy[0], xy[1], 2.2, 0, Math.PI * 2); ctx.fill();
@@ -184,9 +194,9 @@ window.APP = window.APP || {};
     ctx.font = "11px 'Microsoft YaHei',sans-serif";
     series.forEach(se => {
       if (!se.name) return;
-      ctx.fillStyle = se.color || "#0b5cad";
+      ctx.fillStyle = se.color || "#22d3ee";
       ctx.fillRect(lx, ly + 3, 12, 3);
-      ctx.fillStyle = "#5a6b80";
+      ctx.fillStyle = "#8fb6d4";
       ctx.textAlign = "left"; ctx.textBaseline = "top";
       ctx.fillText(se.name, lx + 17, ly);
       lx += 24 + ctx.measureText(se.name).width;
@@ -208,12 +218,12 @@ window.APP = window.APP || {};
       g.pts.forEach((p, i) => {
         const xy = toXY(pad, W, H, xlim, ylim, p[0], p[1]);
         ctx.beginPath();
-        ctx.fillStyle = (g.colors && g.colors[i]) || g.color || "#0b5cad";
+        ctx.fillStyle = (g.colors && g.colors[i]) || g.color || "#22d3ee";
         ctx.arc(xy[0], xy[1], g.r || 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "rgba(6,11,20,.85)"; ctx.lineWidth = 1; ctx.stroke();
         if (g.labels && g.labels[i]) {
-          ctx.fillStyle = "#5a6b80"; ctx.font = "10.5px 'Microsoft YaHei',sans-serif";
+          ctx.fillStyle = "#8fb6d4"; ctx.font = "10.5px 'Microsoft YaHei',sans-serif";
           ctx.textAlign = "left"; ctx.textBaseline = "bottom";
           ctx.fillText(g.labels[i], xy[0] + 6, xy[1] - 3);
         }
@@ -222,7 +232,7 @@ window.APP = window.APP || {};
     // 帕累托前沿（可选折线）
     if (opts.frontier) {
       ctx.save();
-      ctx.strokeStyle = "#e39a12"; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
       ctx.beginPath();
       opts.frontier.forEach((p, i) => {
         const xy = toXY(pad, W, H, xlim, ylim, p[0], p[1]);
@@ -234,9 +244,9 @@ window.APP = window.APP || {};
     ctx.font = "11px 'Microsoft YaHei',sans-serif";
     groups.forEach(g => {
       if (!g.name) return;
-      ctx.fillStyle = g.color || "#0b5cad";
+      ctx.fillStyle = g.color || "#22d3ee";
       ctx.beginPath(); ctx.arc(lx + 5, ly + 6, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#5a6b80"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = "#8fb6d4"; ctx.textAlign = "left"; ctx.textBaseline = "top";
       ctx.fillText(g.name, lx + 14, ly);
       lx += 20 + ctx.measureText(g.name).width;
     });
@@ -256,11 +266,11 @@ window.APP = window.APP || {};
       const y = H - 4 - (H - 8) * ((p[1] - y0) / ((y1 - y0) || 1));
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     });
-    ctx.strokeStyle = color || "#0b5cad";
+    ctx.strokeStyle = color || "#22d3ee";
     ctx.lineWidth = 1.8;
     ctx.stroke();
     ctx.lineTo(W - 4, H); ctx.lineTo(4, H); ctx.closePath();
-    ctx.fillStyle = (color || "#0b5cad") + "18";
+    ctx.fillStyle = (color || "#22d3ee") + "18";
     ctx.fill();
   };
 
@@ -275,9 +285,9 @@ window.APP = window.APP || {};
     ctx.font = "11.5px 'Microsoft YaHei',sans-serif";
     steps.forEach((st, i) => {
       const y = pad.t + i * rowH;
-      ctx.fillStyle = "#5a6b80"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#8fb6d4"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
       ctx.fillText(st.name, pad.l - 8, y + rowH / 2);
-      ctx.fillStyle = "#f0f4f9";
+      ctx.fillStyle = "rgba(96,165,250,.1)";
       ctx.fillRect(pad.l, y + rowH * 0.22, W - pad.l - pad.r, rowH * 0.56);
       obj(st, i);
       acc += st.dur;
@@ -290,7 +300,7 @@ window.APP = window.APP || {};
       x = pad.l + (W - pad.l - pad.r) * (prev / total);
       w = (W - pad.l - pad.r) * (st.dur / total);
       const done = i < curIdx, cur = i === curIdx;
-      ctx.fillStyle = done ? "#9fd3b4" : cur ? "#0b5cad" : "#dbe4ee";
+      ctx.fillStyle = done ? "#34d399" : cur ? "#22d3ee" : "rgba(96,165,250,.22)";
       ctx.beginPath();
       const r = 4, yy = y + rowH * 0.22, hh = rowH * 0.56;
       ctx.moveTo(x + r, yy); ctx.lineTo(x + w - r, yy);
@@ -304,7 +314,7 @@ window.APP = window.APP || {};
         ctx.fillStyle = "rgba(255,255,255,.35)";
         ctx.fillRect(x, yy, w * p, hh);
       }
-      ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#04121c"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.font = "10.5px 'Microsoft YaHei',sans-serif";
       if (w > 40) ctx.fillText(st.dur.toFixed(0) + " s", x + 6, yy + hh / 2);
       ctx.font = "11.5px 'Microsoft YaHei',sans-serif";
@@ -326,7 +336,7 @@ window.APP = window.APP || {};
     edges.forEach(e => {
       const a = byId[e[0]], b = byId[e[1]];
       if (!a || !b) return;
-      ctx.strokeStyle = "#c3ccd8"; ctx.lineWidth = 1.4;
+      ctx.strokeStyle = "rgba(96,165,250,.4)"; ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.moveTo(a._x + a._w / 2, a._y);
       ctx.lineTo(b._x - b._w / 2 - 3, b._y);
@@ -338,11 +348,11 @@ window.APP = window.APP || {};
       ctx.moveTo(hx, hy);
       ctx.lineTo(hx - Math.cos(ang - 0.4) * 8, hy - Math.sin(ang - 0.4) * 8);
       ctx.lineTo(hx - Math.cos(ang + 0.4) * 8, hy - Math.sin(ang + 0.4) * 8);
-      ctx.closePath(); ctx.fillStyle = "#c3ccd8"; ctx.fill();
+      ctx.closePath(); ctx.fillStyle = "rgba(96,165,250,.4)"; ctx.fill();
     });
     nodes.forEach(n => {
-      ctx.fillStyle = n.state === "run" ? "#0b5cad" : n.state === "done" ? "#e9f7ee" : "#ffffff";
-      ctx.strokeStyle = n.state === "run" ? "#0b5cad" : n.state === "done" ? "#9fd3b4" : "#d5dee9";
+      ctx.fillStyle = n.state === "run" ? "#22d3ee" : n.state === "done" ? "rgba(52,211,153,.16)" : "#0f1c2e";
+      ctx.strokeStyle = n.state === "run" ? "#22d3ee" : n.state === "done" ? "#34d399" : "rgba(96,165,250,.35)";
       ctx.lineWidth = 1.4;
       const r = 7, x = n._lx, y = n._ly, w = n._w, h = n._h;
       ctx.beginPath();
@@ -351,7 +361,7 @@ window.APP = window.APP || {};
       ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
       ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
       ctx.fill(); ctx.stroke();
-      ctx.fillStyle = n.state === "run" ? "#fff" : "#3d4b5e";
+      ctx.fillStyle = n.state === "run" ? "#04121c" : "#c6d8ea";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(n.label, n._x, n._y);
     });

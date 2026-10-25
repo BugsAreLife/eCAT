@@ -42,6 +42,7 @@ window.APP = window.APP || {};
     ];
     S.stepIdx = 2; S.stepT = 3.2; S.elapsed = 0; S.roundCount = 7;
     S.running = false; S.fault = null; S.faultCount = 0; S.totalElapsed = 0;
+    deriveParts();          // 首帧就有部件参数（否则孪生/部件列表显示空）
     A.log("系统初始化完成：13 个部件就绪，历史 9 轮数据已载入");
     A.log("提示：点击「启动」开始模拟运行，点「注入异常」体验告警与自恢复");
   }

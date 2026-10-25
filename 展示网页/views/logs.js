@@ -39,7 +39,7 @@
         K.kv("涉及部件", cur.part) +
         K.kv("症状", K.esc(cur.symptom)) +
         '<div style="margin-top:10px"><b>诊断树（症状 → 验证动作 → 判定）</b>' +
-        '<ol style="margin:6px 0 0 18px;padding:0;font-size:12.5px;color:#46536a">' +
+        '<ol style="margin:6px 0 0 18px;padding:0;font-size:12.5px;color:#a9c2d8">' +
         "<li>验证通信心跳：读取设备状态寄存器 → " + (cur.level === "stop" ? "无响应（通信类）" : "正常（排除通信）") + "</li>" +
         "<li>验证执行器反馈：泵/加热输出与回读比对 → " + (cur.part.indexOf("PUMP") >= 0 ? "出口压力持续偏高" : "执行器反馈正常") + "</li>" +
         "<li>验证传感器：与冗余检测交叉比对 → " + (cur.part.indexOf("BOTTLE") >= 0 ? "液位确实低于阈值" : "无矛盾") + "</li>" +
@@ -67,6 +67,7 @@
     }).join("") || '<div class="muted">暂无事件</div>';
 
     root.innerHTML =
+      K.pagehead("⚠", "告警与日志", "ALARM · 分级处置 / 诊断树 / 指令级审计", "monitor", "运行监控") +
       K.card("告警列表（" + alarms.length + " 条，点击查看诊断）",
         K.table(["编号", "时间", "级别", "类型", "部件", "状态"], alarmRows), "无人值守核心") +
       detail +

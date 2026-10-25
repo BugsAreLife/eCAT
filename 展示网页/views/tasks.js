@@ -49,6 +49,7 @@
     }));
 
     root.innerHTML =
+      K.pagehead("☰", "任务中心", "TASK · 一句话下单 / 意图解析 / 工序编排", "ops", "智能编排") +
       '<div class="grid g2">' +
       K.card("下达任务（自然语言）",
         '<textarea id="taskInput" rows="3" placeholder="例如：' + K.esc(EXAMPLE) + '">' + K.esc(S.taskText || EXAMPLE) + "</textarea>" +
@@ -59,7 +60,8 @@
         '<div style="margin-bottom:6px">' + parsed.items.map(x => '<span class="chip">' + K.esc(x) + "</span>").join("") + "</div>" +
         K.kv("目标：η10 上限", parsed.goal.eta10Max + " mV") +
         K.kv("轮次上限", parsed.goal.roundLimit + " 轮") +
-        K.kv("Mo 比例区间", parsed.ranges.moRatio[0] + " – " + parsed.ranges.moRatio[1]) +
+        K.kv("Mo 比例区间", Math.round(parsed.ranges.moRatio[0] * 100) + "% – " +
+          Math.round(parsed.ranges.moRatio[1] * 100) + "%") +
         K.kv("约束", "pH ≤ 9.5 · 温度 ≤ 70 ℃ · 单一赛题提交") +
         (parsed.ranges.tempC ? K.kv("温度序列", parsed.ranges.tempC.join(" / ") + " ℃") : "")) +
       "</div>" +
@@ -103,20 +105,24 @@
       A.render();
     });
 
-    // DAG：固定编排 + 当前工序状态
+    // DAG：固定编排 + 当前工序状态（4 列两行蛇形布局，避免 8 个节点挤成一条线）
     const order = ["start", "fill", "react", "test", "clean", "waste", "archive", "next"];
     const label = { start: "任务确认", fill: "加液", react: "混合反应", test: "电化学测试", clean: "清洗/换电极", waste: "废液", archive: "数据归档", next: "下一轮推荐" };
+    const posOf = function (i) {
+      const row = i < 4 ? 0 : 1;
+      const k = row === 0 ? i : 7 - i;            // 上行左→右，下行右→左（蛇形）
+      return { x: k / 3, y: row === 0 ? 0.24 : 0.74 };
+    };
     const nodes = order.map((id, i) => {
-      const x = i / (order.length - 1);
+      const p = posOf(i);
       let state = "idle";
       if (id === "fill" || id === "react" || id === "test" || id === "clean" || id === "waste") {
-        const key = id === "react" ? "react" : id;
-        const ci = D.STEPS.findIndex(s => s.key === key);
+        const ci = D.STEPS.findIndex(s => s.key === id);
         state = ci < S.stepIdx ? "done" : ci === S.stepIdx ? "run" : "idle";
       }
       if (id === "archive") state = S.stepIdx > 2 ? "done" : "idle";
       if (id === "next") state = S.roundCount > 0 ? "done" : "idle";
-      return { id, label: label[id], x, y: i % 2 === 0 ? 0.30 : 0.72, state };
+      return { id, label: label[id], x: p.x, y: p.y, state };
     });
     const edges = [];
     for (let i = 0; i < order.length - 1; i++) edges.push([order[i], order[i + 1]]);

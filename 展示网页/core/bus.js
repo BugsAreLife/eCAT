@@ -1,4 +1,11 @@
-/* 应用状态 + 事件总线
+/* 应用状态 + 事件总线 + 信息架构（层级导航）
+ *
+ * 导航结构（逐层下钻）：
+ *   首页 home
+ *   ├─ 运行监控 monitor  → 驾驶舱 dashboard / 数字孪生 twin / 告警与日志 logs
+ *   ├─ 实验数据 data     → 实验档案 archive → 轮次详情 data/archive/R-008
+ *   └─ 智能编排 ops      → 任务中心 tasks / Agent 工作台 agent
+ *
  * 设计原则：一切变化先进事件流（bus），视图订阅后重绘；状态只在此处维护。
  */
 window.APP = window.APP || {};
@@ -8,7 +15,8 @@ window.APP = window.APP || {};
 
   // ---------- 全局状态 ----------
   A.state = {
-    page: "home",
+    route: { group: null, view: "home", page: null, param: null, path: "home" },
+    page: "home",       // 当前视图键（home / module / dashboard / archive / round / …）
     running: false,
     roundIdx: 7,        // 当前执行第 8 轮（0-based 指向 R-008）
     stepIdx: 2,
@@ -74,24 +82,75 @@ window.APP = window.APP || {};
     A.bus.emit("log", item, level);
   };
 
-  // ---------- 视图注册 ----------
+  // ============================================================
+  // 信息架构：视图 / 页面 / 模块
+  // ============================================================
   A.views = {};
-  A.navOrder = ["home", "dashboard", "twin", "archive", "tasks", "agent", "logs"];
-  A.navMeta = {
-    home: { name: "首页", ic: "⌂" },
-    dashboard: { name: "驾驶舱", ic: "▦" },
-    twin: { name: "数字孪生", ic: "◈" },
-    archive: { name: "实验档案", ic: "▤" },
-    tasks: { name: "任务中心", ic: "☰" },
-    agent: { name: "Agent 工作台", ic: "✦" },
-    logs: { name: "告警与日志", ic: "⚠" },
+
+  // 页面（第三层）
+  A.pages = {
+    dashboard: { name: "驾驶舱", ic: "▦", hint: "工序推进与关键指标" },
+    twin: { name: "数字孪生", ic: "◈", hint: "3D 部件状态" },
+    logs: { name: "告警与日志", ic: "⚠", hint: "分级处置与留痕" },
+    archive: { name: "实验档案", ic: "▤", hint: "9 轮数据与曲线" },
+    tasks: { name: "任务中心", ic: "☰", hint: "一句话下单与编排" },
+    agent: { name: "Agent 工作台", ic: "✦", hint: "候选配方与审计链" },
   };
 
-  // ---------- 页面切换 ----------
-  A.go = function (page) {
-    if (!A.views[page]) page = "home";
-    A.state.page = page;
-    if (window.location.hash !== "#/" + page) window.location.hash = "#/" + page;
-    A.render();
+  // 模块（第二层）
+  A.groups = [
+    {
+      key: "monitor", name: "运行监控", ic: "◉", sub: "STATUS · TWIN · ALARM",
+      desc: "看平台此刻在干什么：工序进度、部件状态、异常处置。",
+      pages: ["dashboard", "twin", "logs"],
+    },
+    {
+      key: "data", name: "实验数据", ic: "▤", sub: "ARCHIVE · CURVES",
+      desc: "看历史跑得怎么样：配方、曲线、判定结论，逐轮可下钻到细节。",
+      pages: ["archive"],
+    },
+    {
+      key: "ops", name: "智能编排", ic: "✦", sub: "TASK · AGENT",
+      desc: "下一句任务，看 Agent 如何编排工序、给出候选并等待人工批准。",
+      pages: ["tasks", "agent"],
+    },
+  ];
+  A.groupByKey = {};
+  A.groups.forEach(g => { A.groupByKey[g.key] = g; });
+  A.groupOfPage = function (page) {
+    for (let i = 0; i < A.groups.length; i++) {
+      if (A.groups[i].pages.indexOf(page) >= 0) return A.groups[i];
+    }
+    return null;
+  };
+
+  // 全部可路由路径（测试与文档用）
+  A.allRoutes = [
+    "home",
+    "monitor", "monitor/dashboard", "monitor/twin", "monitor/logs",
+    "data", "data/archive", "data/archive/R-008",
+    "ops", "ops/tasks", "ops/agent",
+  ];
+
+  // ---------- 路由（解析在 app.js，跳转在这里） ----------
+  A.go = function (path) {
+    const p = String(path == null ? "home" : path).replace(/^#?\/+/, "").replace(/\/+$/, "") || "home";
+    const h = "#/" + p;
+    if (window.location.hash !== h) window.location.hash = h;
+    A.route();
+  };
+
+  // 面包屑（返回 [{name, path, here}]）
+  A.trail = function (route) {
+    const r = route || A.state.route;
+    const out = [{ name: "首页", path: "home" }];
+    if (r.group) {
+      const g = A.groupByKey[r.group];
+      if (g) out.push({ name: g.name, path: r.group });
+      if (r.page && A.pages[r.page]) out.push({ name: A.pages[r.page].name, path: r.group + "/" + r.page });
+      if (r.view === "round") out.push({ name: r.param || "轮次详情", path: r.path });
+    }
+    out.forEach((x, i) => { x.here = i === out.length - 1; });
+    return out;
   };
 })(window.APP);
