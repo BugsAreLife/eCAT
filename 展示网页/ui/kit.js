@@ -107,13 +107,21 @@ window.APP = window.APP || {};
       ctx.textAlign = "right"; ctx.textBaseline = "middle";
       ctx.fillText(opts.yFmt ? opts.yFmt(val) : val.toFixed(0), pad.l - 6, y);
     }
-    // x 轴刻度
-    const nx = 5;
-    for (let i = 0; i <= nx; i++) {
-      const x = pad.l + (W - pad.l - pad.r) * (i / nx);
-      const val = xlim[0] + (xlim[1] - xlim[0]) * (i / nx);
+    // x 轴刻度（opts.xTicks 可指定整数刻度，避免等分落在小数轮次上）
+    const ticks = opts.xTicks && opts.xTicks.length ? opts.xTicks : null;
+    const n = ticks ? ticks.length : 6;
+    for (let i = 0; i < n; i++) {
+      let val, x;
+      if (ticks) {
+        val = ticks[i];
+        x = pad.l + (W - pad.l - pad.r) * ((val - xlim[0]) / ((xlim[1] - xlim[0]) || 1));
+      } else {
+        val = xlim[0] + (xlim[1] - xlim[0]) * (i / 5);
+        x = pad.l + (W - pad.l - pad.r) * (i / 5);
+      }
       ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, H - pad.b); ctx.stroke();
-      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.textAlign = i === 0 ? "left" : i === n - 1 ? "right" : "center";
+      ctx.textBaseline = "top";
       ctx.fillText(opts.xFmt ? opts.xFmt(val) : val.toFixed(0), x, H - pad.b + 5);
     }
     // 轴标签

@@ -32,14 +32,15 @@ eCAT/
 │       └── README.md               3D 看板说明
 │
 ├── 展示网页/                       ← 管控软件（网页应用，双击 index.html 可运行）
-│   ├── index.html  app.js          应用入口
+│   ├── index.html  app.js          应用入口（打开即首页）
 │   ├── assets/                     app.css + data.js（模拟数据）
 │   ├── core/                       bus.js（状态/事件）+ sim.js（状态机/假设备）
 │   ├── ui/kit.js                   组件 + 自绘图表
-│   ├── views/                      6 个页面视图
+│   ├── views/                      7 个页面视图（home 首页 + 6 个功能页）
+│   ├── _截图/                      验收截图（首页首屏/整页、档案页）
 │   ├── test_smoke.js               无浏览器冒烟测试
 │   ├── README.md                   使用说明
-│   └── 产品制作方案.md              PLAN-SW-001（10 步制作流程）
+│   └── 产品制作方案.md              PLAN-SW-001（制作流程与验收清单）
 │
 ├── _备份/                          git bundle 存档（已忽略，不进仓库）
 ├── Git使用说明.md                  日常 git 流程 / 远程仓库 / 恢复命令

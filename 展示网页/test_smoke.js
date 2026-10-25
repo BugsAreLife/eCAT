@@ -1,4 +1,4 @@
-/* 无浏览器冒烟测试：加载全部脚本 → 启动 → 依次渲染 6 个页面 → 跑模拟/注入异常
+/* 无浏览器冒烟测试：加载全部脚本 → 启动 → 依次渲染 7 个页面 → 跑模拟/注入异常
  * 用法：node test_smoke.js
  * 目的：在没有浏览器自动化的情况下，尽早暴露引用错误、空指针、图表绘制异常。
  */
@@ -71,7 +71,7 @@ global.performance = { now: () => Date.now() };
 const dir = __dirname;
 const files = [
   "assets/data.js", "core/bus.js", "core/sim.js", "ui/kit.js",
-  "views/dashboard.js", "views/twin.js", "views/archive.js",
+  "views/home.js", "views/dashboard.js", "views/twin.js", "views/archive.js",
   "views/tasks.js", "views/agent.js", "views/logs.js", "app.js",
 ];
 
@@ -92,7 +92,7 @@ for (const f of files) {
 const A = global.window.APP;
 if (!A) { console.log("APP 未初始化"); process.exit(1); }
 
-// ---------------- 渲染 6 个页面 ----------------
+// ---------------- 渲染 7 个页面 ----------------
 console.log("\n--- 页面渲染 ---");
 for (const p of A.navOrder) {
   try {

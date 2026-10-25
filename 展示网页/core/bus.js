@@ -8,7 +8,7 @@ window.APP = window.APP || {};
 
   // ---------- 全局状态 ----------
   A.state = {
-    page: "dashboard",
+    page: "home",
     running: false,
     roundIdx: 7,        // 当前执行第 8 轮（0-based 指向 R-008）
     stepIdx: 2,
@@ -76,8 +76,9 @@ window.APP = window.APP || {};
 
   // ---------- 视图注册 ----------
   A.views = {};
-  A.navOrder = ["dashboard", "twin", "archive", "tasks", "agent", "logs"];
+  A.navOrder = ["home", "dashboard", "twin", "archive", "tasks", "agent", "logs"];
   A.navMeta = {
+    home: { name: "首页", ic: "⌂" },
     dashboard: { name: "驾驶舱", ic: "▦" },
     twin: { name: "数字孪生", ic: "◈" },
     archive: { name: "实验档案", ic: "▤" },
@@ -88,7 +89,7 @@ window.APP = window.APP || {};
 
   // ---------- 页面切换 ----------
   A.go = function (page) {
-    if (!A.views[page]) page = "dashboard";
+    if (!A.views[page]) page = "home";
     A.state.page = page;
     if (window.location.hash !== "#/" + page) window.location.hash = "#/" + page;
     A.render();
