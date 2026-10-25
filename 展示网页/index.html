@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>析氢催化剂实验平台 · 管控软件（初稿）</title>
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◈</span>
+      <div>
+        <div class="t1">析氢催化剂实验平台 · 管控软件</div>
+        <div class="t2">AI Agent 智能托管 · 无人值守运行监控</div>
+      </div>
+    </div>
+    <div class="grow"></div>
+    <div class="pills">
+      <span class="pill"><i class="dot s-idle" id="hdrStateDot"></i><b id="hdrState">待机</b></span>
+      <span class="pill">第 <b id="hdrRound">–</b> 轮</span>
+      <span class="pill">异常 <b id="hdrAlarm">0</b></span>
+      <span class="pill demo-pill" title="界面数据为模拟生成，非真实实验数据">演示数据 · 模拟运行</span>
+    </div>
+    <div class="actions">
+      <button id="btnRun" class="primary">▶ 启动</button>
+      <button id="btnFault" class="danger">⚠ 注入异常</button>
+      <button id="btnReset">↺ 复位</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <nav class="side" id="nav"></nav>
+    <main class="main" id="view"></main>
+  </div>
+
+  <footer class="statusbar">
+    <span id="sbPage">驾驶舱</span>
+    <span class="sep">·</span>
+    <span id="sbClock">--:--:--</span>
+    <span class="sep">·</span>
+    <span id="sbHint">拖动/点击交互将在接入 3D 模型后启用</span>
+    <div class="grow"></div>
+    <span class="muted">初稿 v0.1 · 所有数据为模拟</span>
+  </footer>
+</div>
+
+<div id="errbox"></div>
+
+<!-- 数据与核心 -->
+<script src="assets/data.js"></script>
+<script src="core/bus.js"></script>
+<script src="core/sim.js"></script>
+<!-- 组件与图表 -->
+<script src="ui/kit.js"></script>
+<!-- 视图 -->
+<script src="views/dashboard.js"></script>
+<script src="views/twin.js"></script>
+<script src="views/archive.js"></script>
+<script src="views/tasks.js"></script>
+<script src="views/agent.js"></script>
+<script src="views/logs.js"></script>
+<!-- 启动 -->
+<script src="app.js"></script>
+</body>
+</html>

@@ -21,3 +21,7 @@ _build*.pdf
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ---- 本地备份（git bundle 生成的单文件存档）----
+*.bundle
+_备份/

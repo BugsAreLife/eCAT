@@ -6,20 +6,40 @@
 
 ---
 
-## 一、文件清单
+## 一、目录结构（分块管理）
 
-| 文件 | 作用 |
-|---|---|
-| `作品报告书-基于AI Agent的析氢催化剂智能优化系统.docx` | **主交付物**，21 页完整稿 |
-| `fig/fig3_1_architecture.png` | 图 3.1 系统总体架构（原创绘制） |
-| `fig/fig5_1_closed_loop.png` | 图 5.1 闭环优化流程（原创绘制） |
-| `content_a.py` | 正文文字源：题目、摘要、关键词、第一至三章 |
-| `content_b.py` | 正文文字源：第四至六章、支撑材料、参考文献、致谢 |
-| `build_report.py` | 构建脚本：在模板上生成报告书（样式、表格、目录域、页码） |
-| `make_figures.py` | 插图生成脚本 |
-| `.gitignore` | 排除 Word 锁文件、Python 缓存、预览中间产物 |
-| `比赛题目（李洋）-郑少帅.docx` | 赛题原始文件（素材） |
-| `附件2作品报告书模板.docx` | 官方模板（素材，脚本以它为底稿） |
+```
+eCAT/
+├── 作品报告书-基于AI Agent的析氢催化剂智能优化系统.docx   【主交付物，21 页】
+├── 比赛题目（李洋）-郑少帅.docx                           赛题（输入）
+├── 附件2作品报告书模板.docx                               官方模板（输入）
+│
+├── 报告生成/                       ← 报告的过程资产（脚本 + 插图）
+│   ├── build_report.py            构建脚本（在模板上生成报告书）
+│   ├── content_a.py               文字源：题目/摘要/关键词/第一~三章
+│   ├── content_b.py               文字源：第四~六章/支撑材料/参考文献/致谢
+│   ├── make_figures.py            生成图 3.1、图 5.1
+│   ├── make_product_figure.py     生成图 3.2（产品形态示意）
+│   └── fig/                       三张插图 PNG
+│
+├── 平台改造/                       ← 硬件改造方案
+│   ├── 平台改造需求规格书.md        SPEC-PLAT-001，32 条需求
+│   └── 3D数字孪生/                 网页 3D 看板（双击 index.html 可运行）
+│       ├── index.html  app.js  engine.js  scene.js
+│       ├── test_engine.js          无浏览器冒烟测试
+│       ├── make_scene.py           场景定义与导出（改模型改这里）
+│       ├── _preview.png            静态预览
+│       └── README.md               3D 看板说明
+│
+├── README.md                      本文件
+└── .gitignore                     排除 Word 锁文件/Python 缓存/预览中间产物
+```
+
+**分层原则**：根目录只放"**对外文件**"（交付物 + 赛题 + 模板，打开即用、便于发送）；
+子目录放"**过程资产**"（脚本、插图、规格书、3D 看板），只有做修改时才需要进去。
+
+> 三个 docx 因被 Word 进程占用（另一会话），未能移入子目录，故按上述原则留在根目录。
+> `build_report.py` 已做兼容查找：模板在根目录或 `报告生成/`、`02_赛题与模板/` 都能找到。
 
 ---
 
@@ -96,11 +116,15 @@
 
 ```powershell
 $py = "C:\Users\pwb\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe"
+Set-Location "D:\UsersData\Desktop\eCAT\报告生成"
 
-# 1) 重新画图
+# 1) 重新画图（图 3.1 / 图 5.1）
 & $py make_figures.py
 
-# 2) 重新排版生成 docx（会覆盖主交付物）
+# 2) 图 3.2 产品形态示意
+& $py make_product_figure.py
+
+# 3) 重新排版生成 docx（会覆盖主交付物）
 & $py build_report.py
 ```
 
@@ -122,11 +146,18 @@ $py = "C:\Users\pwb\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\py
 
 ---
 
-## 八、git 状态说明（本次未做任何提交）
+## 八、git 状态
 
-- 仓库已 `git init`，分支 `main`，**尚无任何 commit**。
-- 索引中存在历史暂存内容，其中包含应剔除的文件：
-  - `~$题目（李洋）-郑少帅.docx`（Word 打开文档时生成的锁文件，162 字节）
-  - `_dump_docx.py`、`_inspect_tpl.py`（已删除的临时探测脚本，索引状态为 AD）
-- 本次仅新增了 `.gitignore`，**未执行 add / rm / commit 等任何 git 写操作**。
-- 建议后续自行处理（确认后执行）：清除上述索引项，再将素材、报告书、脚本一并提交。
+- 已有首个提交：`9674938 完成析氢催化剂 AI Agent 智能优化系统作品报告书初稿`（11 个文件）。
+- 本次目录重组后，`git status` 显示为"删除 + 新增"；提交时执行 `git add -A` 即可，
+  git 会按文件内容自动识别为 rename，历史不会丢。
+- 尚未提交的新内容：`平台改造/`（规格书 + 3D 看板）、`报告生成/` 下的脚本与插图、本 README 的改动。
+
+```powershell
+Set-Location "D:\UsersData\Desktop\eCAT"
+git add -A
+git status --short          # 应显示为 rename: xxx -> 报告生成/xxx
+git commit -m "refactor: 目录按内容分块（报告生成/平台改造/3D数字孪生）"
+```
+
+> 建议等结构稳定（三个 docx 是否归位确定下来）后再提交，避免中间态记录。

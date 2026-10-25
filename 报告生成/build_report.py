@@ -15,9 +15,23 @@ from docx.oxml.ns import qn, nsdecls
 import content_a as A
 import content_b as B
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-TPL = os.path.join(HERE, "附件2作品报告书模板.docx")
+HERE = os.path.dirname(os.path.abspath(__file__))          # 01_报告书/
+ROOT = os.path.dirname(HERE)                               # 项目根目录
+TPL_NAME = "附件2作品报告书模板.docx"
 OUT = os.path.join(HERE, "作品报告书-基于AI Agent的析氢催化剂智能优化系统.docx")
+
+
+def find_template():
+    """兼容两种存放状态：模板已归入 02_赛题与模板/，或仍留在根目录。"""
+    cands = [
+        os.path.join(ROOT, "02_赛题与模板", TPL_NAME),
+        os.path.join(ROOT, TPL_NAME),
+        os.path.join(HERE, TPL_NAME),
+    ]
+    for c in cands:
+        if os.path.exists(c):
+            return c
+    raise FileNotFoundError("找不到模板：请把 %s 放到 02_赛题与模板/ 目录" % TPL_NAME)
 
 # 目录页码（依据最终版式渲染实测校准，正文页码从 1 起算）
 PAGES = {
@@ -287,7 +301,7 @@ def add_toc_field(doc, entries, anchor):
 # 主流程
 # --------------------------------------------------------------------------
 def main():
-    shutil.copyfile(TPL, OUT)
+    shutil.copyfile(find_template(), OUT)
     doc = Document(OUT)
     add_styles(doc)
 

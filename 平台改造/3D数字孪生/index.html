@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>析氢催化剂实验平台 · 数字孪生看板</title>
+<style>
+  :root{
+    --bg:#eef2f7; --panel:#ffffff; --ink:#1c2430; --sub:#6b7787;
+    --line:#dde4ec; --brand:#0b5cad; --brand2:#2f5597;
+    --run:#3ba55d; --warn:#f0a020; --err:#d62728; --idle:#9aa4ad;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font:13px/1.5 "Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    color:var(--ink); background:var(--bg); overflow:hidden;
+  }
+  #app{display:flex;flex-direction:column;height:100%}
+
+  header{
+    display:flex;align-items:center;gap:16px;padding:10px 18px;
+    background:linear-gradient(90deg,#0b5cad,#2f5597);color:#fff;flex:0 0 auto;
+  }
+  header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.5px}
+  header .sub{font-size:12px;opacity:.8}
+  header .spacer{flex:1}
+  .pill{font-size:12px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.16)}
+  .pill b{font-weight:600}
+
+  main{flex:1;display:grid;grid-template-columns:250px 1fr 268px;min-height:0}
+  aside{background:var(--panel);overflow:auto;padding:12px}
+  #left{border-right:1px solid var(--line)}
+  #right{border-left:1px solid var(--line)}
+
+  .sec{margin-bottom:14px}
+  .sec h2{font-size:12px;color:var(--sub);font-weight:600;margin:0 0 8px;letter-spacing:.4px}
+  .kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .kv:last-child{border-bottom:0}
+  .kv span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+
+  .bar{height:8px;background:#eef2f7;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3ba55d,#63c98a);transition:width .2s}
+
+  button{
+    font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:7px 10px;border-radius:7px;cursor:pointer;transition:.15s;
+  }
+  button:hover{border-color:#b9c7d8;background:#f7fafd}
+  button:active{transform:translateY(1px)}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button.primary:hover{background:#0a51a0}
+  button.danger{color:#b02020;border-color:#f0c4c4;background:#fff7f7}
+  button.danger:hover{background:#ffecec}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+  .btnrow button{flex:1 1 auto}
+
+  /* 告警横幅 */
+  #alert{
+    display:none;margin:0 0 10px;padding:8px 10px;border-radius:8px;
+    font-size:12px;line-height:1.45;
+  }
+  #alert.show{display:block}
+  #alert.warn{background:#fff6e5;border:1px solid #f3d08a;color:#8a5a00}
+  #alert.error{background:#ffeceb;border:1px solid #f2b5b3;color:#9c1c1c;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.55}}
+
+  #log{font-size:11.5px;color:var(--sub);max-height:150px;overflow:auto}
+  #log div{padding:3px 0;border-bottom:1px dotted var(--line)}
+  #log .t{color:#9aa8b8;margin-right:6px}
+  #log .e{color:#b02020}
+  #log .w{color:#8a5a00}
+
+  /* 舞台 */
+  #stage{position:relative;min-width:0;background:#eef2f7}
+  #cv{display:block;width:100%;height:100%;cursor:grab}
+  #cv:active{cursor:grabbing}
+  #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .lab{
+    position:absolute;transform:translate(-50%,-100%);
+    background:rgba(255,255,255,.92);border:1px solid #c8d6e5;color:#2a3b52;
+    font-size:11.5px;padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 8px rgba(20,40,70,.10);
+  }
+  .lab::after{content:"";position:absolute;left:50%;bottom:-5px;width:1px;height:5px;background:#c8d6e5}
+  #hint{
+    position:absolute;left:14px;bottom:12px;font-size:11.5px;color:#7d8b9c;
+    background:rgba(255,255,255,.75);padding:4px 9px;border-radius:6px;
+  }
+  #stats{
+    position:absolute;right:14px;top:12px;font-size:11.5px;color:#5b6b7f;
+    background:rgba(255,255,255,.8);padding:6px 10px;border-radius:8px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* 右栏 */
+  #card{font-size:12.5px}
+  #card .name{font-size:14px;font-weight:600;margin-bottom:2px}
+  #card .code{font-size:11.5px;color:var(--sub);margin-bottom:8px}
+  #card .spec{display:inline-block;background:#eef4fb;color:#0b5cad;border-radius:5px;padding:1px 7px;font-size:11.5px;margin-bottom:8px}
+  #card .desc{color:#46536a;line-height:1.6}
+  #card .state{margin-top:8px;font-size:12px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+  .s-idle{background:var(--idle)} .s-running{background:var(--run)}
+  .s-warn{background:var(--warn)} .s-error{background:var(--err)}
+
+  .mod{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;border:1px solid transparent}
+  .mod:hover{background:#f5f9fd;border-color:#e2ebf5}
+  .mod .nm{flex:1;font-size:12.5px}
+  .mod .st{font-size:11px;color:var(--sub)}
+
+  footer{
+    flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:9px 16px;
+    background:var(--panel);border-top:1px solid var(--line);
+  }
+  footer .grp{display:flex;gap:6px;align-items:center}
+  footer .lbl{font-size:12px;color:var(--sub);margin-right:2px}
+  footer .spacer{flex:1}
+  label.chk{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);cursor:pointer}
+  #err{position:fixed;inset:auto 12px 12px 12px;background:#ffeceb;border:1px solid #f2b5b3;color:#9c1c1c;padding:10px 12px;border-radius:8px;display:none;white-space:pre-wrap;font-size:12px;z-index:99}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>析氢催化剂自动化实验平台 · 数字孪生看板</h1>
+      <div class="sub">AI Agent 智能托管 · 无人值守运行监控</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill">运行状态 <b id="hdrState">待机</b></div>
+    <div class="pill">第 <b id="hdrRound">0</b> 轮</div>
+    <div class="pill">异常 <b id="hdrErr">0</b></div>
+  </header>
+
+  <main>
+    <aside id="left">
+      <div id="alert" class="warn"></div>
+
+      <div class="sec">
+        <h2>实验进程</h2>
+        <div class="kv"><span>当前工序</span><span id="mStep">待机</span></div>
+        <div class="kv"><span>已运行</span><span id="mElapsed">00:00</span></div>
+        <div class="kv"><span>本轮进度</span><span id="mProg">0%</span></div>
+        <div class="bar"><i id="mBar"></i></div>
+      </div>
+
+      <div class="sec">
+        <h2>控制</h2>
+        <div class="btnrow">
+          <button id="btnRun" class="primary">▶ 启动实验</button>
+          <button id="btnDrawer">⇥ 抽出层板</button>
+        </div>
+        <div class="btnrow" style="margin-top:8px">
+          <button id="btnFault" class="danger">⚠ 注入异常</button>
+          <button id="btnReset">↺ 复位</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>事件日志</h2>
+        <div id="log"></div>
+      </div>
+    </aside>
+
+    <section id="stage">
+      <canvas id="cv"></canvas>
+      <div id="labels"></div>
+      <div id="stats">FPS <span id="fps">–</span> · 面片 <span id="faces">–</span></div>
+      <div id="hint">拖动旋转 · 滚轮缩放 · 左键点击部件查看信息</div>
+    </section>
+
+    <aside id="right">
+      <div class="sec">
+        <h2>部件信息</h2>
+        <div id="card">
+          <div class="desc" style="color:#8494a8">点击模型中的任意部件查看名称、规格书条目与实时状态。</div>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>模块状态</h2>
+        <div id="mods"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="grp"><span class="lbl">视角</span>
+      <button data-view="iso">等轴测</button>
+      <button data-view="front">正视</button>
+      <button data-view="side">侧视</button>
+      <button data-view="top">俯视</button>
+    </div>
+    <div class="grp" style="margin-left:10px">
+      <label class="chk"><input type="checkbox" id="cbSpin" checked> 自动旋转</label>
+      <label class="chk"><input type="checkbox" id="cbLabel" checked> 显示标注</label>
+    </div>
+    <div class="spacer"></div>
+    <div style="font-size:11.5px;color:#8494a8">离线可运行 · 无外部依赖 · 点击部件查看规格书条目</div>
+  </footer>
+</div>
+
+<div id="err"></div>
+
+<script src="scene.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
