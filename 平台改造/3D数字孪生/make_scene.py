@@ -52,10 +52,11 @@ C = {
 }
 
 
-def add(name, cn, spec, kind, size, pos, rot=(0, 0, 0), color="al", group="", pick=True):
+def add(name, cn, spec, kind, size, pos, rot=(0, 0, 0), color="al", group="", pick=True, anim=None):
     PARTS.append({
         "name": name, "cn": cn, "spec": spec, "kind": kind, "size": list(size),
         "pos": list(pos), "rot": list(rot), "color": color, "group": group, "pick": pick,
+        "anim": anim,
     })
 
 
@@ -131,7 +132,10 @@ for i, bx in enumerate(BEK_X):
     add("M-REACTOR-0%d" % (i + 1), "反应烧杯 %d" % (i + 1), "R-09", "cyl",
         (0.056, 0.110, 0.056), (bx, 1.000, 0.195), (0, 0, 0), "beaker")
 add("M-TURRET-01", "电极转盘", "R-07", "cyl", (0.115, 0.016, 0.115), (0.24, 0.948, 0.185), (0, 0, 0), "al_d")
+# 六位转盘：第 1 / 4 位升级为「快换夹具总成」（R-08），其余为普通夹位
 for i in range(6):
+    if i in (0, 3):
+        continue                      # 由下方快换夹具替代
     ang = math.radians(i * 60)
     add("M-TURRET-E%d" % (i + 1), "电极夹位 %d" % (i + 1), "R-07", "cyl",
         (0.010, 0.045, 0.010),
@@ -152,10 +156,47 @@ add("M-WCAP-01", "废液桶盖", "R-06", "cyl", (0.040, 0.035, 0.040), (0.29, 0.
 add("M-HANDLE-01", "左门把手", "R-19", "box", (0.012, 0.14, 0.020), (-0.035, 0.90, 0.358), (0, 0, 0), "roller")
 add("M-HANDLE-02", "右门把手", "R-19", "box", (0.012, 0.14, 0.020), (0.035, 0.90, 0.358), (0, 0, 0), "roller")
 
-# 抽屉滑轨与拉手（R-27 的可视化）
-add("M-RAIL-01", "抽屉滑轨（左）", "R-27", "box", (0.022, 0.024, 0.50), (-0.372, 0.902, 0.02), (0, 0, 0), "al_d")
-add("M-RAIL-02", "抽屉滑轨（右）", "R-27", "box", (0.022, 0.024, 0.50), (0.372, 0.902, 0.02), (0, 0, 0), "al_d")
-add("M-DHANDLE-01", "抽屉拉手", "R-27", "box", (0.30, 0.018, 0.018), (0, 0.955, 0.288), (0, 0, 0), "roller")
+# ============================================================
+# 改造机构（逐条演示 R-08 快换夹具 / R-27 抽屉与三节滑轨）
+# 坐标：x 左右，y 向上，z 向前；柜体 0.90 × 0.70 × 1.70
+# ============================================================
+# ---------- R-27 三节滚珠滑轨（左/右各三段） ----------
+for side, sx in (("L", -0.372), ("R", 0.372)):
+    SN = "左" if side == "L" else "右"
+    add("M-RAIL-%s1" % side, "滑轨外轨（%s）" % SN, "R-27",
+        "box", (0.022, 0.024, 0.50), (sx, 0.902, 0.02), (0, 0, 0), "al_d")
+    add("M-RAIL-%s2" % side, "滑轨中轨（%s）" % SN, "R-27",
+        "box", (0.016, 0.018, 0.30), (sx * 0.996, 0.902, 0.02), (0, 0, 0), "al",
+        anim={"t": "drawer", "k": 0.5})
+    add("M-RAIL-%s3" % side, "滑轨内轨（%s）" % SN, "R-27",
+        "box", (0.012, 0.014, 0.30), (sx * 0.992, 0.902, 0.02), (0, 0, 0), "sheet",
+        anim={"t": "drawer", "k": 1})
+    add("M-DSTOP-%s" % side, "抽屉限位块（%s）" % SN, "R-27",
+        "box", (0.026, 0.030, 0.012), (sx, 0.906, 0.262), (0, 0, 0), "roller")
+
+add("M-DSW-01", "抽屉到位微动开关", "R-27", "box", (0.020, 0.020, 0.014),
+    (-0.300, 0.906, 0.262), (0, 0, 0), "grn")
+add("M-DFACE-01", "抽屉前面板", "R-27", "box", (0.780, 0.110, 0.014), (0, 0.905, 0.291), (0, 0, 0), "sheet",
+    anim={"t": "drawer", "k": 1})
+add("M-DHANDLE-01", "抽屉拉手", "R-27", "box", (0.30, 0.018, 0.018), (0, 0.955, 0.302), (0, 0, 0), "roller",
+    anim={"t": "drawer", "k": 1})
+
+# ---------- R-08 快换电极夹具（装在转盘第 1 / 4 位） ----------
+for tag, fx in (("01", 0.24 + 0.082), ("02", 0.24 - 0.082)):
+    add("M-FIX-%s-BASE" % tag, "快换夹具底座（%s）" % tag, "R-08", "cyl",
+        (0.040, 0.014, 0.040), (fx, 0.972, 0.185), (0, 0, 0), "al_d")
+    add("M-FIX-%s-PIN1" % tag, "定位销 φ6（%s-1）" % tag, "R-08", "cyl",
+        (0.006, 0.016, 0.006), (fx - 0.012, 0.978, 0.185), (0, 0, 0), "roller")
+    add("M-FIX-%s-PIN2" % tag, "定位销 φ6（%s-2）" % tag, "R-08", "cyl",
+        (0.006, 0.016, 0.006), (fx + 0.012, 0.978, 0.185), (0, 0, 0), "roller")
+    add("M-ELEC-%s" % tag, "电极片 φ10（%s）" % tag, "R-08", "cyl",
+        (0.010, 0.003, 0.010), (fx, 0.981, 0.185), (0, 0, 0), "sheet_d",
+        anim={"t": "elec", "k": 1})
+    add("M-FIX-%s-CLAMP" % tag, "弹簧压片（%s）" % tag, "R-08", "box",
+        (0.034, 0.004, 0.034), (fx, 0.985, 0.185), (0, 0, 0), "al",
+        anim={"t": "clamp", "k": 1})
+    add("M-FIX-%s-SCREW" % tag, "M6 压紧螺钉（%s）" % tag, "R-08", "cyl",
+        (0.008, 0.010, 0.008), (fx, 0.990, 0.203), (0, 0, 0), "roller")
 
 # ============================================================
 # 二、几何生成
@@ -207,6 +248,7 @@ def build_scene():
     for p in PARTS:
         scene.append({"name": p["name"], "cn": p["cn"], "spec": p["spec"],
                       "color": p["color"], "group": p["group"], "pick": p["pick"],
+                      "anim": p.get("anim"),
                       "faces": make_faces(p),
                       "center": p["pos"]})
     return scene
@@ -295,9 +337,7 @@ def render(scene, out_png, W=1240, H=1240, eye=(3.15, 2.10, 3.70), target=(0, 0.
 # 四、导出给前端的 scene.js
 # ============================================================
 def export_js(scene):
-    DRAWER_PREFIX = ("M-DRAWER", "M-REACTOR", "M-TURRET", "M-DHANDLE")
-    DRAWER_DZ = 0.24   # 抽屉拉出行程（米）
-
+    """导出前端场景：每件零件带 anim（抽屉/压片/电极 位移），供交互演示用。"""
     parts = []
     for p in scene:
         item = {
@@ -306,22 +346,31 @@ def export_js(scene):
             "faces": [[[round(c, 4) for c in v] for v in f] for f in p["faces"]],
             "center": [round(c, 4) for c in p["center"]],
         }
-        if p["name"].startswith(DRAWER_PREFIX):
-            item["facesOpen"] = [
-                [[round(v[0], 4), round(v[1], 4), round(v[2] + DRAWER_DZ, 4)] for v in f]
-                for f in p["faces"]
-            ]
+        if p.get("anim"):
+            item["anim"] = p["anim"]
         parts.append(item)
 
-    payload = {"parts": parts, "labels": LABELS, "colors": C}
+    payload = {
+        "parts": parts,
+        "labels": LABELS,
+        "colors": C,
+        "travel": {"drawer": 0.24, "clamp": 0.016, "elec": 0.060},   # 米
+    }
     js = ("// 自动生成：请勿手改（由 make_scene.py 生成）\n"
           "window.SCENE = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n")
-    path = os.path.join(WEB, "scene.js")
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(js)
-    print("scene.js ->", path, "%.1f KB" % (os.path.getsize(path) / 1024))
+
+    targets = [WEB, os.path.normpath(os.path.join(WEB, "..", "..", "展示网页", "assets", "3d"))]
+    for out_dir in targets:
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, "scene.js")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(js)
+        print("scene.js ->", path, "%.1f KB" % (os.path.getsize(path) / 1024))
+
+    n_anim = sum(1 for p in parts if p.get("anim"))
     print("parts:", len(parts), "faces:", sum(len(p["faces"]) for p in parts),
-          "| 可抽出部件:", sum(1 for p in parts if "facesOpen" in p))
+          "| 可动零件:", n_anim,
+          "| 需求条目:", len(set(p["spec"] for p in parts)))
 
 
 if __name__ == "__main__":

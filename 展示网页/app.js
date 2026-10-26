@@ -127,7 +127,7 @@
     home: "层级：首页 → 模块 → 页面 → 轮次详情；一级导航在上、二级导航在下、面包屑在右上",
     module: "第 2 层：点卡片进入第 3 层页面；面包屑/返回可回退",
     dashboard: "第 3 层：顶栏可启动 / 注入异常 / 复位；数据每 0.25 s 刷新",
-    twin: "第 3 层：3D 为低模占位，接入真实模型后启用点击拾取高亮",
+    twin: "第 3 层：点模型 ↔ 点右侧清单双向高亮；可抽出层板 / 松开夹具 / 拆装电极",
     logs: "第 3 层：告警可展开诊断树；时间轴显示处置过程",
     archive: "第 3 层：点表格行进入第 4 层轮次详情",
     round: "第 4 层：曲线 / 工序耗时 / 判定结论；可左右切换相邻轮次",
@@ -150,8 +150,11 @@
     const root = $("view");
     if (!root) return;
     root.innerHTML = "";
-    // 首页全幅铺满（其他页面保持原内边距）
-    if (root.classList && root.classList.toggle) root.classList.toggle("bleed", r.view === "home");
+    // 首页全幅铺满 / 孪生页固定视口（其他页面保持原内边距）
+    if (root.classList && root.classList.toggle) {
+      root.classList.toggle("bleed", r.view === "home");
+      root.classList.toggle("twinpage", r.view === "twin");
+    }
     A.onTick = null;                 // 视图可注册低频软刷新（首页/模块总览用）
     const fn = A.views[r.view] || A.views.home;
     try {
@@ -181,7 +184,7 @@
     }
 
     if (p === "dashboard") { A.render(); return; }
-    if (p === "twin" && tickN % 4 === 0) { A.render(); return; }
+    // twin 自带 rAF 渲染循环，不能整页重绘（否则画布/交互会被反复重建）
     if (p === "logs" && tickN % 4 === 0) { A.render(); return; }
     if (p === "tasks" && tickN % 8 === 0) { A.render(); return; }
     updateTop();

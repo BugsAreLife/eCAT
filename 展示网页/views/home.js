@@ -401,7 +401,7 @@
 
     // 兜底：若动画时钟未推进（部分无头/低配环境），2.2s 后强制显示终态
     if (!still) {
-      window.setTimeout(function () {
+      setTimeout(function () {
         if (A.state.page !== "home" || !document.body.contains(root)) return;
         const probe = root.querySelector(".hv-card--a");
         if (!probe) return;

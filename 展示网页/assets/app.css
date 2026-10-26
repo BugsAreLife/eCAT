@@ -592,3 +592,120 @@ button.hero-ghost:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211
   .cap:hover,.step:hover,.modcard:hover{transform:none}
   .banner.stop{animation:none}
 }
+
+/* ============================================================
+   数字孪生页（v0.5）：左 3D + 右侧零件/需求联动
+   ============================================================ */
+.main.twinpage{padding:12px;overflow:hidden;position:relative}
+.tw{display:grid;grid-template-columns:1fr 372px;gap:12px;height:100%;min-height:0}
+.tw-stage{
+  position:relative;min-height:0;border-radius:12px;overflow:hidden;
+  border:1px solid rgba(56,189,248,.22);
+  background:radial-gradient(120% 90% at 50% 0%,#0d1a2a,#05090f 70%);
+  box-shadow:inset 0 0 70px rgba(34,211,238,.07);
+}
+.tw-stage canvas{display:block;width:100%;height:100%}
+.tw-toolbar{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;z-index:3;max-width:calc(100% - 300px)}
+.tw-views{position:absolute;right:12px;top:12px;display:flex;gap:4px;z-index:3}
+.tw-btn{
+  font-size:11.5px;padding:5px 10px;border-radius:7px;white-space:nowrap;cursor:pointer;
+  border:1px solid rgba(56,189,248,.28);background:rgba(10,22,38,.82);color:#b9d3e8;transition:.15s;
+}
+.tw-btn:hover{border-color:rgba(34,211,238,.6);color:#eafcff;background:rgba(34,211,238,.12)}
+.tw-btn--primary{
+  background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121c;border-color:transparent;font-weight:600;
+  box-shadow:0 0 14px rgba(34,211,238,.35);
+}
+.tw-btn--danger{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.4);color:#fca5a5}
+.tw-views button{
+  font-size:11px;padding:4px 9px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(56,189,248,.2);background:rgba(10,22,38,.72);color:#8fb6d4;transition:.15s;
+}
+.tw-views button:hover{color:#eafcff;border-color:rgba(34,211,238,.5)}
+.tw-views button.on{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121c;border-color:transparent;font-weight:600}
+.tw-hud{
+  position:absolute;display:flex;align-items:center;gap:6px;z-index:3;
+  font-family:var(--mono);font-size:11px;color:#8fb6d4;
+  background:rgba(6,14,24,.74);border:1px solid rgba(56,189,248,.16);border-radius:7px;padding:4px 9px;
+}
+.tw-hud.bl{left:12px;bottom:12px}
+.tw-hud.br{right:12px;bottom:12px}
+.tw-hint{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  font-size:11px;color:#5f7791;z-index:2;pointer-events:none;white-space:nowrap;
+}
+.tw-tag{
+  position:absolute;left:50%;bottom:42px;transform:translateX(-50%) translateY(6px);
+  font-family:var(--mono);font-size:11px;color:#04121c;white-space:nowrap;z-index:3;pointer-events:none;
+  background:linear-gradient(135deg,#a5f3fc,#67e8f9);border-radius:999px;padding:3px 12px;
+  opacity:0;transition:.2s;box-shadow:0 0 18px rgba(34,211,238,.5);
+}
+.tw-tag.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.tw-side{
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:12px;
+  border:1px solid rgba(56,189,248,.18);
+  background:linear-gradient(180deg,rgba(15,26,42,.94),rgba(9,16,27,.94));
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+.tw-tabs{display:flex;flex:0 0 auto;border-bottom:1px solid rgba(56,189,248,.14)}
+.tw-tab{flex:1;text-align:center;padding:9px 0;font-size:12.5px;color:#8fb6d4;cursor:pointer;transition:.15s}
+.tw-tab:hover{color:#dff6ff}
+.tw-tab.on{color:#eafcff;background:rgba(34,211,238,.08);box-shadow:inset 0 -2px 0 #22d3ee}
+.tw-tab b{color:#67e8f9;font-family:var(--mono);margin-left:4px;font-weight:600}
+.tw-search{flex:0 0 auto;padding:8px 10px}
+.tw-search input{
+  width:100%;font:inherit;font-size:12px;padding:6px 9px;border-radius:7px;
+  border:1px solid rgba(56,189,248,.2);background:rgba(6,14,24,.8);color:#e6f0fa;
+}
+.tw-search input:focus{outline:none;border-color:rgba(34,211,238,.55)}
+.tw-list{flex:1 1 auto;overflow:auto;min-height:0;padding:0 6px 6px}
+.tw-grouphd{
+  position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;
+  font-size:10.5px;letter-spacing:.6px;color:#7f9ab5;padding:7px 6px 5px;
+  background:rgba(9,16,27,.97);border-bottom:1px dotted rgba(56,189,248,.14);
+}
+.tw-grouphd span{font-family:var(--mono);color:#5f7791}
+.tw-row{
+  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:5px 8px;border-radius:6px;font-size:12px;color:#c6d8ea;cursor:pointer;transition:.12s;
+}
+.tw-row:hover{background:rgba(34,211,238,.08)}
+.tw-row.on{background:rgba(34,211,238,.16);box-shadow:inset 2px 0 0 #22d3ee;color:#eafcff}
+.tw-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tw-row .code{font-family:var(--mono);font-size:10px;color:#6f8aa6}
+.tw-row .spec{
+  font-family:var(--mono);font-size:10px;color:#67e8f9;
+  background:rgba(34,211,238,.08);border:1px solid rgba(56,189,248,.2);border-radius:4px;padding:0 5px;
+}
+.tw-row--req{grid-template-columns:50px 1fr auto}
+.tw-row .rid{font-family:var(--mono);color:#67e8f9;font-size:11px}
+.tw-row .cnt{font-size:10.5px;color:#7f9ab5;font-family:var(--mono)}
+.tw-row.dim{opacity:.5}
+.tw-empty{padding:18px;text-align:center;color:#5f7791;font-size:12px}
+.tw-info{
+  flex:0 0 auto;padding:9px 11px;border-top:1px solid rgba(56,189,248,.16);
+  background:rgba(6,14,24,.55);max-height:150px;overflow:auto;
+}
+.tw-i-hd{display:flex;align-items:baseline;gap:8px;font-size:13px;color:#eafcff}
+.tw-i-hd .code{font-family:var(--mono);font-size:10px;color:#6f8aa6}
+.tw-i-req{margin-top:4px;font-size:11.5px;color:#9dc2dd}
+.tw-i-req i{font-style:normal;font-family:var(--mono);color:#67e8f9;margin-right:5px}
+.tw-i-req em{float:right;font-style:normal;color:#7f9ab5;font-family:var(--mono);font-size:10.5px}
+.tw-i-desc{margin-top:4px;font-size:11.5px;color:#8fb6d4;line-height:1.6}
+.tw-i-meta{margin-top:4px;font-size:10.5px;color:#6f8aa6;line-height:1.5}
+.tw-i-act{margin-top:5px;font-size:11px;color:#fbbf24}
+.tw-log{
+  flex:0 0 auto;height:86px;overflow:hidden;padding:6px 10px;
+  border-top:1px solid rgba(56,189,248,.14);
+  font-family:var(--mono);font-size:10.5px;color:#7f9ab5;line-height:1.55;
+}
+.tw-log .t{color:#5f7791;margin-right:6px}
+.tw-log .ok{color:#6ee7b7}
+.tw-log .w{color:#fcd34d}
+.tw-log .e{color:#fca5a5}
+@media (max-width:1180px){
+  .main.twinpage{overflow:auto}
+  .tw{grid-template-columns:1fr;grid-template-rows:minmax(360px,1fr) 340px;height:auto}
+  .tw-toolbar{max-width:calc(100% - 24px)}
+}

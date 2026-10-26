@@ -24,16 +24,17 @@ eCAT/
 │
 ├── 平台改造/                       ← 硬件改造方案
 │   ├── 平台改造需求规格书.md        SPEC-PLAT-001，32 条需求
-│   └── 3D数字孪生/                 网页 3D 看板（双击 index.html 可运行）
-│       ├── index.html  app.js  engine.js  scene.js
-│       ├── test_engine.js          无浏览器冒烟测试
-│       ├── make_scene.py           场景定义与导出（改模型改这里）
-│       ├── _preview.png            静态预览
-│       └── README.md               3D 看板说明
+│   └── 3D数字孪生/                 场景源（双击 index.html 可看独立看板）
+│       ├── make_scene.py           **唯一建模入口**：99 件零件 + 机构（R-08/R-27）+ 导出两份 scene.js
+│       ├── scene.js                自动生成（本目录 + 展示网页/assets/3d/），勿手改
+│       ├── _preview.png            静态预览（make_scene.py 生成）
+│       └── index.html app.js engine.js test_engine.js README.md   独立看板
+│
+├── 素材/                           AI 生图提示词（即梦）与待放素材
 │
 ├── 展示网页/                       ← 管控软件（网页应用，双击 index.html 可运行）
 │   ├── index.html  app.js          应用入口（顶栏 + 顶部导航窗格 + 多级路由）
-│   ├── assets/                     hero.css（首页 Hero）+ app.css（设计系统）+ data.js（模拟数据）
+│   ├── assets/                     hero.css + app.css + data.js + 3d/（engine3d.js + scene.js）
 │   ├── core/                       bus.js（状态/事件/信息架构）+ sim.js（状态机/假设备）
 │   ├── ui/kit.js                   组件 + 自绘图表 + 页面头
 │   ├── views/                      9 个视图（首页 / 模块总览 / 6 个功能页 / 轮次详情）

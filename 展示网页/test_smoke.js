@@ -71,6 +71,7 @@ global.performance = { now: () => Date.now() };
 const dir = __dirname;
 const files = [
   "assets/data.js", "core/bus.js", "core/sim.js", "ui/kit.js",
+  "assets/3d/engine3d.js", "assets/3d/scene.js",
   "views/home.js", "views/module.js", "views/dashboard.js", "views/twin.js",
   "views/archive.js", "views/round.js", "views/tasks.js", "views/agent.js",
   "views/logs.js", "app.js",
